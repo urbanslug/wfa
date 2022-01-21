@@ -1,0 +1,10 @@
+[package]
+name = "wflambda-rs-new"
+version = "0.0.1-alpha"
+edition = "2021"
+readme = "README.md"
+authors = ["Njagi Mwaniki <njagi+bio@njagi.me>"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
