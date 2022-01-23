@@ -10,4 +10,4 @@ authors = ["Njagi Mwaniki <njagi+bio@njagi.me>"]
 [dependencies]
 num = "^0.4.0"
 ndarray = "^0.15.4"
-ndarray-to-img = { path = "../ndarray-to-img" }
+ndarray-to-img = { git = "https://github.com/urbanslug/ndarray-to-img.git" }
