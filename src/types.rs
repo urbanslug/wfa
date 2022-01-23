@@ -4,33 +4,6 @@ wavefront types
 
 use num;
 
-/// The a single wavefront with a score
-/// The furthest reaching point of a single wavefront
-pub struct WaveFront {
-    /// the highest diagonal touched by the wavefront
-    pub hi: i32,
-
-    /// the lowest diagonal touched by the wavefront
-    pub lo: i32,
-
-    /// The offsets of each diagonal between hi and lo
-    /// vals\[0\] is the score of the wavefront at diagonal hi and
-    /// vals\[<last>\] is the score of the wavefront at diagonal lo
-    /// length is (hi - lo) + 1
-    pub vals: Vec<u32>,
-}
-
-impl WaveFront {
-    pub fn new(hi: i32, lo: i32) -> Self {
-        let len = num::abs_sub(hi, lo) as usize + 1;
-
-        Self {
-            hi,
-            lo,
-            vals: vec![0; len],
-        }
-    }
-}
 
 #[derive(Debug)]
 pub enum WfType {
@@ -46,12 +19,41 @@ pub enum BacktraceOperation {
 		Deletion
 }
 
+/// The a single wavefront with a score
+/// The furthest reaching point of a single wavefront
+pub struct WaveFront {
+    /// the highest diagonal touched by the wavefront
+    pub hi: i32,
+
+    /// the lowest diagonal touched by the wavefront
+    pub lo: i32,
+
+    /// The offsets of each diagonal between hi and lo
+    /// vals\[0\] is the score of the wavefront at diagonal hi and
+    /// vals\[<last>\] is the score of the wavefront at diagonal lo
+    /// length is (hi - lo) + 1
+		// TODO: rename vals to offsets
+    pub vals: Vec<i32>,
+}
+
+impl WaveFront {
+    pub fn new(hi: i32, lo: i32) -> Self {
+        let len = num::abs_sub(hi, lo) as usize + 1;
+
+        Self {
+            hi,
+            lo,
+            vals: vec![0; len],
+        }
+    }
+}
 
 /// The set of wavefronts at a certain score
 pub struct WaveFrontSet {
     /// insertion wavefront
     pub i: WaveFront,
-    /// deletion wavefront
+
+		/// deletion wavefront
     pub d: WaveFront,
 
     /// match wavefront
@@ -69,4 +71,11 @@ pub struct WaveFronts {
 		pub min_k: i32,
 		pub max_k: i32,
 		pub a_k: usize
+}
+
+impl WaveFronts {
+		/// The scores should always be positive numbers
+		pub fn get(&self, score: usize) -> &WaveFrontSet {
+				&self.wavefront_set[score]
+		}
 }

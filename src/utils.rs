@@ -4,6 +4,12 @@ use crate::types;
 
 use ndarray_to_img;
 
+// How many cells does the wave cross?
+pub fn compute_wave_length(lo: i32, hi: i32) -> usize {
+		(hi-lo+1) as usize
+}
+
+// 
 pub fn compute_k_index(length: usize, k: i32, hi: i32) -> usize {
     // we expect hi - k to always be +ve
     length - ((hi - k) as usize) - 1
@@ -23,11 +29,11 @@ pub fn abs_sub(lhs: i32, rhs: i32) -> i32 {
     num::abs(result)
 }
 
-pub fn compute_v(offset: u32, k: i32) -> usize {
-		abs_sub(offset as i32, k as i32) as usize
+pub fn compute_v(offset: i32, k: i32) -> usize {
+		abs_sub(offset, k as i32) as usize
 }
 
-pub fn compute_h(offset: u32, _: i32) -> usize {
+pub fn compute_h(offset: i32, _: i32) -> usize {
 		offset as usize
 }
 
@@ -318,7 +324,7 @@ pub mod debug_utils {
 								for k in lo..=hi {
 
 										let k_index: usize = compute_k_index(len, k, hi);
-										let m_s_k: u32 = vals[k_index];
+										let m_s_k: i32 = vals[k_index];
 
 										for offset in  0..=m_s_k {
 												let v: usize = compute_v(offset, k);
@@ -330,7 +336,11 @@ pub mod debug_utils {
 														continue;
 												}
 
-												matrix[[v,h]] = offset+1;
+												if offset < 0 {
+														matrix[[v,h]] = 0;
+												} else {
+														matrix[[v,h]] = offset as u32 + 1;
+												}
 										}
 								}
 						}
@@ -377,7 +387,7 @@ pub mod debug_utils {
 
 						for k in lo..=hi {
 								let k_index: usize = compute_k_index(len, k, hi);
-								let m_s_k: u32 = vals[k_index];
+								let m_s_k: i32 = vals[k_index];
 
 								let v: usize = abs_sub(m_s_k as i32, k) as usize;
 								let h: usize = m_s_k as usize;
@@ -388,7 +398,12 @@ pub mod debug_utils {
 										// eprintln!("\t {:?} ({}, {})", wf_type, v, h);
 										continue;
 								}
-								matrix[[v,h]] = m_s_k +1;
+
+								if m_s_k < 0 {
+										matrix[[v,h]] = 0;
+								} else {
+										matrix[[v,h]] = m_s_k as u32 + 1;
+								}
 						}
 						eprintln!();
 				}
@@ -402,7 +417,7 @@ pub mod debug_utils {
 				};
 
 				let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);
-				let image_name = format!("{:?}_image.png", wf_type); 
+				let image_name = format!("{:?}_image.png", wf_type);
 				ndarray_to_img::generate_image(&scaled_matrix, &config, &image_name).unwrap();
 		}
 

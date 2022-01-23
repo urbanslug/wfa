@@ -14,7 +14,7 @@ mod config;
 use num;
 use std::cmp;
 
-
+/// Change isizes to i32
 pub fn wf_traceback(
 		all_wavefronts: &types::WaveFronts,
 		score: usize
@@ -146,8 +146,8 @@ pub fn wf_traceback(
 						panic!("Backtrace error: No link found during backtrace");
         }
 
-				v = crate::utils::compute_v(offset as u32, k);
-				h = crate::utils::compute_h(offset as u32, k);
+				v = crate::utils::compute_v(offset as i32, k);
+				h = crate::utils::compute_h(offset as i32, k);
 		};
 
 		// reached the end of one or both of the sequences
@@ -194,7 +194,7 @@ where
 				let k_index: usize = utils::compute_k_index(m_wavefront.vals.len(), k, m_wavefront.hi);
 
 				// assuming tlen > qlen
-				let m_s_k: u32 = m_wavefront.vals[k_index];
+				let m_s_k: i32 = m_wavefront.vals[k_index];
 
 				let mut v: usize = utils::compute_v(m_s_k, k);
 				let mut h: usize = utils::compute_h(m_s_k, k);
@@ -265,7 +265,7 @@ pub fn wf_next(
 		let wf_set = types::WaveFrontSet {
 				i: types::WaveFront::new(hi, lo),
 				d: types::WaveFront::new(hi, lo),
-				m: types::WaveFront::new(hi,lo),
+				m: types::WaveFront::new(hi, lo),
 		};
 		wavefronts.wavefront_set.push(wf_set);
 
@@ -273,47 +273,64 @@ pub fn wf_next(
 		let s_o_e: usize = usize::try_from(s_o_e).unwrap_or(0);
 		let s_e: usize = usize::try_from(s_e).unwrap_or(0);
 
+		if config::VERBOSITY > 254 {
+				eprintln!("\t\tk-1\tk\tk+1");
+		}
+
+		if config::VERBOSITY > 4 {
+				eprint!("\t\tk\tI\tD\tM");
+				eprintln!();
+		}
+
+		let wave_length: usize = utils::compute_wave_length(lo, hi);
+
+		
 		for k in lo..=hi {
 
-				let length = hi-lo+1;
-				let k_index: usize = utils::compute_k_index(length as usize, k, hi);
+				// eprintln!("\t\twavelength {}", wave_length);
 
-				if config::VERBOSITY > 4 {
-						eprintln!("\t\tk {} k-index {}", k, k_index);
+				if k-1 < lo || k+1 > hi {
+						continue;
 				}
 
-				let k_index_sub_one = (k_index as i32 - 1) as usize;
+				let k_index_sub_one: usize = utils::compute_k_index(wave_length, k-1, hi);
+				let k_index: usize = utils::compute_k_index(wave_length, k, hi);
+				let k_index_add_one: usize = utils::compute_k_index(wave_length, k+1, hi);
 
-				let i_s_k: u32 = *vec![
-						wavefronts.wavefront_set[s_o_e].m.vals.get(k_index_sub_one).unwrap_or(&0),
-						wavefronts.wavefront_set[s_e].i.vals.get(k_index_sub_one).unwrap_or(&0),
+				if  config::VERBOSITY > 254 {
+						eprintln!("\t\t{}\t{}\t{}", k_index_add_one, k_index, k_index_add_one);
+				}
+
+				let i_s_k: i32 = *vec![
+						wavefronts.get(s_o_e).m.vals.get(k_index_sub_one).unwrap_or(&0),
+						wavefronts.get(s_e).i.vals.get(k_index_sub_one).unwrap_or(&0),
 				].iter().max().unwrap() + 1;
 
-				let k_index_add_one = (k_index + 1) as usize;
-				let d_s_k: u32 = **vec![
-						wavefronts.wavefront_set[s_o_e].m.vals.get(k_index_add_one).unwrap_or(&0),
-						wavefronts.wavefront_set[s_e].d.vals.get(k_index_add_one).unwrap_or(&0),
-				].iter().max().unwrap();
+				let d_s_k: i32 = **vec![
+						wavefronts.get(s_o_e).m.vals.get(k_index_add_one).unwrap_or(&0),
+						wavefronts.get(s_e).d.vals.get(k_index_add_one).unwrap_or(&0),
+				].iter().max().unwrap() + 1;
 
-				let vals = &wavefronts.wavefront_set[s_x].m.vals;
-				let m_s_k: u32 = *vec![
-						*vals.get(k_index).unwrap_or(&0),
+				let m_s_k: i32 = *vec![
+						*wavefronts.get(s_x).m.vals.get(k_index).unwrap_or(&0),
 						i_s_k,
 						d_s_k,
 				].iter().max().unwrap();
 
-				let i_offset = u32::try_from(i_s_k).unwrap_or(0);
-				let d_offset = u32::try_from(d_s_k).unwrap_or(0);
-				let d_offset = u32::try_from(m_s_k).unwrap_or(0);
-
+				// offsets
 				if config::VERBOSITY > 4 {
-						eprintln!("\t\tI_s_k {} D_s_k {} M_s_k {}", i_s_k, d_s_k, m_s_k);
+						eprint!("\t\t{}\t{}\t{}\t{}", k, i_s_k, d_s_k, m_s_k);
+						eprintln!();
 				}
 
 				// set the values
-				wavefronts.wavefront_set[score].i.vals[k_index] = u32::try_from(i_s_k).unwrap_or(0);
-				wavefronts.wavefront_set[score].d.vals[k_index] = u32::try_from(d_s_k).unwrap_or(0);
+				wavefronts.wavefront_set[score].i.vals[k_index] = i_s_k;
+				wavefronts.wavefront_set[score].d.vals[k_index] = d_s_k;
 				wavefronts.wavefront_set[score].m.vals[k_index] = m_s_k;
+		}
+
+		if config::VERBOSITY > 4 {
+				eprintln!();
 		}
 }
 
@@ -397,7 +414,7 @@ where
 				// current offset on the m wavefront at the current score
 				let m_s_k = m_wavefront.vals[k_index];
 
-				if m_s_k >= a_offset {
+				if m_s_k >= 0 && (m_s_k as u32) >= a_offset {
 						break
 				}
 
