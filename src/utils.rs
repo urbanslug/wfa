@@ -1,5 +1,5 @@
 use num;
-use ndarray::{Array2};
+use ndarray::{Array2, Array};
 use crate::types;
 
 use ndarray_to_img;
@@ -279,29 +279,6 @@ pub mod backtrace_utils {
 pub mod debug_utils {
 		use super::*;
 
-		pub fn viz(v: &Vec<Vec<i32>>) {
-				let dim = v[0].len();
-				let mut matrix = Array2::<u32>::zeros((dim, dim));
-
-				for i in 0..dim {
-						for j in 0..dim {
-								matrix[[i,j]] = (v[i][j] + 1) as u32;
-						}
-				}
-
-				let config = ndarray_to_img::Config {
-						verbosity: 0,
-						with_color: true,
-						annotate_image: true,
-						draw_diagonal: true,
-						draw_boundaries: true,
-						scaling_factor: 100,
-				};
-
-				let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);
-				let image_name = format!("m_image.png"); 
-				ndarray_to_img::generate_image(&scaled_matrix, &config, &image_name).unwrap();
-		}
 
 		pub fn visualize_all(
 				all_wavefronts: &types::WaveFronts,
@@ -311,8 +288,9 @@ pub mod debug_utils {
 				// let dim = all_wavefronts.wavefront_set.len();
 
 				let dim = (a_offset as usize+10, a_offset as usize+10);
-				let mut matrix = Array2::<u32>::zeros(dim);
-				
+				let x = ndarray::Dim(dim);
+				let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
+
 				for wf_set in all_wavefronts.wavefront_set.iter() {
 						for wf in each_wf {
 								let wf_specific = match wf {
@@ -341,11 +319,7 @@ pub mod debug_utils {
 														continue;
 												}
 
-												if offset < 0 {
-														matrix[[v,h]] = 0;
-												} else {
-														matrix[[v,h]] = offset as u32 + 1;
-												}
+												matrix[[v,h]] = Some(offset);
 										}
 								}
 						}
@@ -365,68 +339,6 @@ pub mod debug_utils {
 				ndarray_to_img::generate_image(&scaled_matrix, &config, &image_name).unwrap();
 		}
 
-		pub fn visualize(
-				all_wavefronts: &types::WaveFronts,
-				a_offset: u32,
-				wf_type: types::WfType
-		) {
-				let a = a_offset as i32;
-				let _min_diagonal = -a;
-
-				let dim = all_wavefronts.wavefront_set.len();
-
-				let mut matrix = Array2::<u32>::zeros((dim, dim));
-
-				for (_score, wf) in all_wavefronts.wavefront_set.iter().enumerate() {
-						// eprintln!("score: {}   ", score);
-
-						let wf_specific = match wf_type {
-								types::WfType::I => &wf.i,
-								types::WfType::D => &wf.d,
-								types::WfType::M => &wf.m,
-						};
-
-						let lo = wf_specific.lo;
-						let hi = wf_specific.hi;
-						let vals = &wf_specific.vals;
-						let len = vals.len();
-
-						for k in lo..=hi {
-								let k_index: usize = compute_k_index(len, k, hi);
-								let m_s_k: i32 = vals[k_index];
-
-								let v: usize = abs_sub(m_s_k as i32, k) as usize;
-								let h: usize = m_s_k as usize;
-
-								// eprintln!("offset: {}\tk: {}\tscore: {}\t({}, {})", m_s_k,  k, score, v, h);
-
-								if v >= dim || h >= dim {
-										// eprintln!("\t {:?} ({}, {})", wf_type, v, h);
-										continue;
-								}
-
-								if m_s_k < 0 {
-										matrix[[v,h]] = 0;
-								} else {
-										matrix[[v,h]] = m_s_k as u32 + 1;
-								}
-						}
-						eprintln!();
-				}
-
-				let config = ndarray_to_img::Config {
-						verbosity: 0,
-						with_color: true,
-						annotate_image: true,
-						draw_diagonal: true,
-						draw_boundaries: true,
-						scaling_factor: 100,
-				};
-
-				let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);
-				let image_name = format!("{:?}_image.png", wf_type);
-				ndarray_to_img::generate_image(&scaled_matrix, &config, &image_name).unwrap();
-		}
 
 }
 

@@ -271,25 +271,20 @@ pub fn wf_next(
 		let o: i32 = 6;
 		let e: i32 = 2;
 
-		let s_x: i32 = s - x;
-		let s_o_e: i32 = s - o - e;
-		let s_e: i32 = s - e;
+		let signed_s_x: i32 = s - x;
+		let signed_s_o_e: i32 = s - o - e;
+		let signed_s_e: i32 = s - e;
 
 		if config::VERBOSITY > 4 {
 				eprintln!("\t\tscore {}\n\
-									 \t\ts_x {} s_o_e {} s_e {}\n\
+									 \t\tsigned_s_x {} signed_s_o_e {} signed_s_e {}\n\
 									 \t\tlo: {} hi: {}\n",
-									score, s_x, s_o_e, s_e, lo, hi);
+									score, signed_s_x, signed_s_o_e, signed_s_e, lo, hi);
 		}
 
-		let s_s_x = s_x;
-		let s_s_o_e = s_o_e;
-		let s_s_e = s_e;
-
-
-		let s_x = s_x as usize;
-		let s_o_e = s_o_e as usize;
-		let s_e = s_e as usize;
+		let s_x = signed_s_x as usize;
+		let s_o_e = signed_s_o_e as usize;
+		let s_e = signed_s_e as usize;
 
 		if config::VERBOSITY > 254 {
 				eprintln!("\t\tk-1\tk\tk+1");
@@ -325,33 +320,33 @@ pub fn wf_next(
 						eprintln!("\t\t{}\t{}\t{}", k_index_add_one, k_index, k_index_add_one);
 				}
 
-				let i_s_k: i32 = *vec![
+				let mut i_s_k: i32 = *vec![
 						match wavefronts.option_get(s_o_e) {
 								Some(wf) => {
-										wf.m.vals.get(k_index_sub_one).unwrap_or(&s_s_o_e)
+										wf.m.vals.get(k_index_sub_one).unwrap_or(&signed_s_o_e)
 								},
-								_ => &s_s_o_e
+								_ => &signed_s_o_e
 						},
 						match wavefronts.option_get(s_e) {
-								Some(wf) => wf.i.vals.get(k_index_sub_one).unwrap_or(&s_s_e),
-								_ => &s_s_e
+								Some(wf) => wf.i.vals.get(k_index_sub_one).unwrap_or(&signed_s_e),
+								_ => &signed_s_e
 						},
 				].iter().max().unwrap() + 1;
 
 				let d_s_k: i32 = **vec![
 						match wavefronts.option_get(s_o_e) {
-								Some(wf) => wf.m.vals.get(k_index_add_one).unwrap_or(&s_s_o_e),
+								Some(wf) => wf.m.vals.get(k_index_add_one).unwrap_or(&signed_s_o_e),
 								_ => &NULL_OFFSETT
 						},
 						match wavefronts.option_get(s_e) {
-								Some(wf) => wf.d.vals.get(k_index_add_one).unwrap_or(&s_s_e),
-								_ => &s_s_e
+								Some(wf) => wf.d.vals.get(k_index_add_one).unwrap_or(&signed_s_e),
+								_ => &signed_s_e
 						},
 				].iter().max().unwrap();
 
 				let m_s_k: i32 = *vec![
 						match wavefronts.option_get(s_x) {
-								Some(wf) => *wf.m.vals.get(k_index).unwrap_or(&s_s_x) + 1,
+								Some(wf) => *wf.m.vals.get(k_index).unwrap_or(&signed_s_x) + 1,
 								_ => NULL_OFFSETT + 1
 						},
 						i_s_k,
@@ -479,11 +474,11 @@ where
 				wf_next(&mut all_wavefronts, score);
 		}
 
+		let cigar = String::new();
+		let cigar = wf_traceback(&all_wavefronts, score);
+
 		let each_wf = vec![ types::WfType::M ];
 		utils::debug_utils::visualize_all(&all_wavefronts, a_offset, &each_wf);
-		let cigar = String::new();
-		// let cigar = wf_traceback(&all_wavefronts, score);
-		
 
 		(score, cigar)
 }
@@ -547,15 +542,15 @@ mod tests {
 
 								eprintln!("--------------------");
 
-								//let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda);
+								let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda);
 
 								eprintln!("--------------------");
 
-								// eprintln!("Result:\n\tScore: {}", score);
+								eprintln!("Result:\n\tScore: {}", score);
 
 								eprintln!("--------------------");
 
-								// utils::backtrace_utils::print_aln(&cigar[..], t, q);
+								utils::backtrace_utils::print_aln(&cigar[..], t, q);
 						}
 
 						{
@@ -611,7 +606,7 @@ mod tests {
 										v < tlen && h < qlen && t[v] == q[h]
 								};
 
-								let score = wf_align(tlen as u32, qlen as u32, &match_lambda);
+								// let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
 						}
 				}
 		}
