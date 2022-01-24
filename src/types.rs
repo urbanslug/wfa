@@ -43,7 +43,7 @@ impl WaveFront {
         Self {
             hi,
             lo,
-            vals: vec![0; len],
+            vals: vec![-10; len],
         }
     }
 }
@@ -77,5 +77,39 @@ impl WaveFronts {
 		/// The scores should always be positive numbers
 		pub fn get(&self, score: usize) -> &WaveFrontSet {
 				&self.wavefront_set[score]
+		}
+
+		pub fn option_get(&self, score: usize) -> Option<&WaveFrontSet> {
+				self.wavefront_set.get(score)
+		}
+
+
+		// Allocate wavefronts with given score
+		pub fn allocate_wavefronts(
+				&mut self,
+				score: u32,
+				lo: i32,
+				hi: i32
+		) -> Result<(), &str>
+		{
+				// should only add what is necessary
+				let prev_score = self.wavefront_set.len() - 1;
+
+				if prev_score >= score as usize {
+						// eprintln!("previous score {} score {}", prev_score, score);
+						return Err("[types::allocate_wavefronts] fuckery detected");
+				}
+
+				for _ in prev_score..(score as usize) {
+						let wf_set = WaveFrontSet {
+								i: WaveFront::new(hi, lo),
+								d: WaveFront::new(hi, lo),
+								m: WaveFront::new(hi, lo),
+						};
+
+						self.wavefront_set.push(wf_set);
+				}
+
+				Ok(())
 		}
 }

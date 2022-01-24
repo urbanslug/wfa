@@ -9,6 +9,10 @@ pub fn compute_wave_length(lo: i32, hi: i32) -> usize {
 		(hi-lo+1) as usize
 }
 
+pub fn to_usize_or_zero<T: num::cast::ToPrimitive>(n: T) -> usize {
+		n.to_usize().unwrap_or(0)
+}
+
 // 
 pub fn compute_k_index(length: usize, k: i32, hi: i32) -> usize {
     // we expect hi - k to always be +ve
@@ -287,6 +291,7 @@ pub mod debug_utils {
 
 				let config = ndarray_to_img::Config {
 						verbosity: 0,
+						with_color: true,
 						annotate_image: true,
 						draw_diagonal: true,
 						draw_boundaries: true,
@@ -348,6 +353,7 @@ pub mod debug_utils {
 
 				let config = ndarray_to_img::Config {
 						verbosity: 0,
+						with_color: true,
 						annotate_image: true,
 						draw_diagonal: true,
 						draw_boundaries: true,
@@ -410,6 +416,7 @@ pub mod debug_utils {
 
 				let config = ndarray_to_img::Config {
 						verbosity: 0,
+						with_color: true,
 						annotate_image: true,
 						draw_diagonal: true,
 						draw_boundaries: true,
