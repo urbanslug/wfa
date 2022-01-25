@@ -108,18 +108,18 @@ pub fn wf_next(
 		let e: i32 = 2;
 
 		let signed_s_x: i32 = s - x;
-		let signed_s_o_e: i32 = s - o - e;
-		let signed_s_e: i32 = s - e;
+    let signed_s_o_e: i32 = s - o - e;
+    let signed_s_e: i32 = s - e;
 
 
-		let unsigned_s_x = signed_s_x as usize;
-		let unsigned_s_o_e = signed_s_o_e as usize;
-		let unsigned_s_e = signed_s_e as usize;
+    let unsigned_s_x = signed_s_x as usize;
+    let unsigned_s_o_e = signed_s_o_e as usize;
+    let unsigned_s_e = signed_s_e as usize;
 
-		if (signed_s_x < 0 || wavefronts.get_m_wavefront(unsigned_s_x).is_none()) ||
-				(signed_s_o_e < 0 || wavefronts.get_m_wavefront(unsigned_s_o_e).is_none()) &&
-				(signed_s_e < 0 || wavefronts.get_i_wavefront(unsigned_s_e).is_none()) &&
-				(signed_s_e < 0 ||  wavefronts.get_d_wavefront(unsigned_s_e).is_none())
+    if (signed_s_x < 0 || wavefronts.get_m_wavefront(unsigned_s_x).is_none()) &&
+        (signed_s_o_e < 0 || wavefronts.get_m_wavefront(unsigned_s_o_e).is_none()) &&
+        (signed_s_e < 0 || wavefronts.get_i_wavefront(unsigned_s_e).is_none()) &&
+        (signed_s_e < 0 ||  wavefronts.get_d_wavefront(unsigned_s_e).is_none())
 		{
 
 						eprintln!("skipping score {}", score);
@@ -317,8 +317,8 @@ where
 		let cigar = String::new();
 		// let cigar = wf_traceback(&all_wavefronts, score);
 
-		// let each_wf = vec![ types::WfType::M ];
-		// utils::debug_utils::visualize_all(&all_wavefronts, a_offset, &each_wf);
+		let each_wf = vec![ types::WfType::M ];
+		utils::debug_utils::visualize_all(&all_wavefronts, a_offset, &each_wf);
 
 		(score, cigar)
 }
