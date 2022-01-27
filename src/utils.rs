@@ -63,12 +63,11 @@ pub mod debug_utils {
         a_offset: u32,
         each_wf: &Vec<types::WfType>
     ) {
-        // let dim = all_wavefronts.wavefront_set.len();
-
         let dim = (a_offset as usize+10, a_offset as usize+10);
         let x = ndarray::Dim(dim);
         let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
 
+        // Loop through all the wavefront sets
         for wf_set in all_wavefronts.wavefront_set.iter() {
 
             let wf_set = match wf_set {
@@ -76,22 +75,32 @@ pub mod debug_utils {
                 None => { continue; },
             };
 
+            // if there's something in here
             for wf in each_wf {
                 let wf_specific = match wf {
-                    types::WfType::I => &wf_set.i,
-                    types::WfType::D => &wf_set.d,
-                    types::WfType::M => &wf_set.m,
+                    types::WfType::I => { match &wf_set.i {
+                        Some(w) => w,
+                        _ => { continue; }
+                    }},
+                    types::WfType::D => { match &wf_set.d {
+                        Some(w) => w,
+                        _ => { continue; }
+                    }},
+                    types::WfType::M => { match &wf_set.m {
+                        Some(w) => w,
+                        _ => { continue; }
+                    }},
                 };
 
                 let lo = wf_specific.lo;
                 let hi = wf_specific.hi;
-                let vals = &wf_specific.offsets;
-                let len = vals.len();
+                let offsets = &wf_specific.offsets;
+                let len = offsets.len();
 
                 for k in lo..=hi {
 
                     let k_index: usize = compute_k_index(len, k, hi);
-                    let m_s_k: i32 = vals[k_index];
+                    let m_s_k: i32 = offsets[k_index];
 
                     for offset in  0..=m_s_k {
                         let v: usize = compute_v(offset, k);
@@ -116,7 +125,7 @@ pub mod debug_utils {
             annotate_image: true,
             draw_diagonal: true,
             draw_boundaries: true,
-            scaling_factor: 100,
+            scaling_factor: 10,
         };
 
         let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);

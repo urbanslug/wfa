@@ -73,18 +73,32 @@ fn compute_wf_next_limits(
 		let s_o_e: isize = s - o - e;
 		let s_e: isize = s - e;
 
+		let hi_or_min = |maybe_wf: Option<&types::WaveFront>| -> i32 {
+				match maybe_wf {
+						Some(wf) => wf.hi,
+						_ => i32::MIN
+				}
+		};
+
+		let lo_or_max = |maybe_wf: Option<&types::WaveFront>| -> i32 {
+				match maybe_wf {
+						Some(wf) => wf.lo,
+						_ => i32::MAX
+				}
+		};
+
 		let hi: i32 = *vec![
-				wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_x)).unwrap().hi,
-				wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_o_e)).unwrap().hi,
-				wavefronts.get_i_wavefront(utils::to_usize_or_zero(s_e)).unwrap().hi,
-				wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e)).unwrap().hi,
+				hi_or_min(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_x))),
+				hi_or_min(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_o_e))),
+				hi_or_min(wavefronts.get_i_wavefront(utils::to_usize_or_zero(s_e))),
+				hi_or_min(wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e))),
 		].iter().max().unwrap() as i32 + 1;
 
 		let lo: i32 = *vec![
-				wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_x)).unwrap().lo,
-				wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_o_e)).unwrap().lo,
-				wavefronts.get_i_wavefront(utils::to_usize_or_zero(s_e)).unwrap().lo,
-				wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e)).unwrap().lo,
+				lo_or_max(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_x))),
+				lo_or_max(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_o_e))),
+				lo_or_max(wavefronts.get_i_wavefront(utils::to_usize_or_zero(s_e))),
+				lo_or_max(wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e))),
 		].iter().min().unwrap() - 1;
 
 		(hi, lo)
@@ -157,8 +171,9 @@ pub fn wf_next(
 		// wavefront with the given score will reach
 		let (hi, lo) = compute_wf_next_limits(&wavefronts, score as isize);
 
+		let wavefronts_to_allocate = vec![types::WfType::I, types::WfType::D, types::WfType::M]; // Vec::<types::WfType>::new();
 		// Allocate the next wave front
-		wavefronts.allocate_wavefronts(score as u32, lo, hi).unwrap();
+		wavefronts.allocate_wavefronts(score as u32, lo, hi, &wavefronts_to_allocate).unwrap();
 
 		let wave_length: usize = utils::compute_wave_length(lo, hi);
 
@@ -219,9 +234,26 @@ pub fn wf_next(
 				// set the values
 				let wf_set: &mut Option<types::WaveFrontSet> = &mut wavefronts.wavefront_set[score];
 				let wf_set: &mut types::WaveFrontSet = wf_set.as_mut().unwrap();
-				wf_set.i.offsets[k_index] = i_s_k;
-				wf_set.d.offsets[k_index] = d_s_k;
-				wf_set.m.offsets[k_index] = m_s_k;
+				if i_s_k < 0 {
+						wf_set.i = None;
+				} else {
+						wf_set.i.as_mut().unwrap().offsets[k_index] = i_s_k;
+				}
+
+				if d_s_k < 0 {
+						wf_set.d = None;
+				} else {
+						wf_set.d.as_mut().unwrap().offsets[k_index] = d_s_k;
+				}
+
+				if m_s_k < 0 {
+						wf_set.m = None;
+				} else {
+						wf_set.m.as_mut().unwrap().offsets[k_index] = m_s_k;
+				}
+				// wf_set.i.offsets[k_index] = i_s_k;
+				// wf_set.d.offsets[k_index] = d_s_k;
+				// wf_set.m.offsets[k_index] = m_s_k;
 		}
 
 		if config::VERBOSITY > 4 {
@@ -256,9 +288,9 @@ where
 
 		// Initial conditions
 		let wf_set = types::WaveFrontSet {
-				i: types::WaveFront::new(hi, lo),
-				d: types::WaveFront::new(hi, lo),
-				m: types::WaveFront::new(hi, lo),
+				i: None,
+				d: None,
+				m: Some(types::WaveFront::new(hi, lo)),
 		};
 
 		let mut all_wavefronts = types::WaveFronts {
@@ -298,7 +330,9 @@ where
 								.wavefront_set[score]
 								.as_mut()
 								.unwrap()
-								.m;
+								.m
+								.as_mut()
+                .unwrap();
 						wf_extend(m_wf_mut, match_lambda);
 				}
 
@@ -318,7 +352,7 @@ where
 		// let cigar = wf_traceback(&all_wavefronts, score);
 
 		let each_wf = vec![ types::WfType::M ];
-		utils::debug_utils::visualize_all(&all_wavefronts, a_offset, &each_wf);
+		utils::debug_utils::visualize_all(&all_wavefronts, a_offset*2, &each_wf);
 
 		(score, cigar)
 }
@@ -381,36 +415,17 @@ mod tests {
 
 								eprintln!("--------------------");
 
-								let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda);
+								// let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda);
 
 								eprintln!("--------------------");
 
-								eprintln!("Result:\n\tScore: {}", score);
+								// eprintln!("Result:\n\tScore: {}", score);
 
 								eprintln!("--------------------");
 
 						}
 
-						{
-								// different sequences
-								let text =  "GAGATA";
-								let query = "GACACA";
-
-								let tlen = text.len();
-								let qlen = query.len();
-
-								let t: &[u8] = text.as_bytes();
-								let q: &[u8] = query.as_bytes();
-
-								let match_lambda = |v: usize, h: usize| {
-										v < tlen && h < qlen && t[v] == q[h]
-								};
-
-								// let (score, cigar) = wf_align(tlen, qlen, &match_lambda);
-								// assert_eq!(score, 8);
-								// utils::backtrace_utils::print_aln(&cigar[..], t, q);
-						}
-
+						
 						{
 								// different sequences
 								let text  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
@@ -444,7 +459,7 @@ mod tests {
 										v < tlen && h < qlen && t[v] == q[h]
 								};
 
-								// let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
+								let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
 						}
 				}
 		}

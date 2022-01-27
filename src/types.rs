@@ -5,7 +5,7 @@ wavefront types
 use num;
 
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum WfType {
 		D,
 		I,
@@ -61,14 +61,14 @@ impl WaveFront {
 /// The set of wavefronts at a certain score
 pub struct WaveFrontSet {
     /// insertion wavefront
-    pub i: WaveFront,
+    pub i: Option<WaveFront>,
 
 		/// deletion wavefront
-    pub d: WaveFront,
+    pub d: Option<WaveFront>,
 
     /// match wavefront
     /// $\tilde{M}_{s,k}$ is the value of the m wavefront at diagonal k
-    pub m: WaveFront,
+    pub m: Option<WaveFront>,
 }
 
 /// All the wavefronts
@@ -102,30 +102,27 @@ impl WaveFronts {
 		}
 
 		pub fn get_m_wavefront(&self, score: usize) -> Option<&WaveFront> {
-				self.wavefront_set
-						.get(score)
-						.and_then(|maybe_wf_set| match maybe_wf_set {
-								Some(wf_set) => Some(&wf_set.m),
-								_ => None,
-						})
+				let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
+				match maybe_wf_set {
+						Some(v) => v.m.as_ref(),
+						_ => None
+				}
 		}
 
 		pub fn get_i_wavefront(&self, score: usize) -> Option<&WaveFront> {
-				self.wavefront_set
-						.get(score)
-						.and_then(|maybe_wf_set| match maybe_wf_set {
-								Some(wf_set) => Some(&wf_set.i),
-								_ => None,
-						})
+				let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
+				match maybe_wf_set {
+						Some(v) => v.i.as_ref(),
+						_ => None
+				}
 		}
 
 		pub fn get_d_wavefront(&self, score: usize) -> Option<&WaveFront> {
-				self.wavefront_set
-						.get(score)
-						.and_then(|maybe_wf_set| match maybe_wf_set {
-								Some(wf_set) => Some(&wf_set.d),
-								_ => None,
-						})
+				let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
+				match maybe_wf_set {
+						Some(v) => v.d.as_ref(),
+						_ => None
+				}
 		}
 
 		pub fn set_i_d_m(&mut self, score: usize) {
@@ -141,12 +138,13 @@ impl WaveFronts {
 				(self.len() - 1) as u32
 		}
 
-		// Allocate wavefronts (I, D, & M) for the given score
+		// Allocate wavefronts (I, D, or M) for the given score
 		pub fn allocate_wavefronts(
 				&mut self,
 				score: u32,
 				lo: i32,
-				hi: i32
+				hi: i32,
+				wavefronts_to_allocate: &Vec<WfType>
 		) -> Result<(), &str>
 		{
 				// should only add what is necessary
@@ -161,9 +159,27 @@ impl WaveFronts {
 				for index in max_score+1..=score {
 						if index == score {
 								let wf_set = WaveFrontSet {
-										i: WaveFront::new(hi, lo),
-										d: WaveFront::new(hi, lo),
-										m: WaveFront::new(hi, lo),
+										i: {
+												if wavefronts_to_allocate.contains(&WfType::I) {
+														Some( WaveFront::new(hi, lo))
+												} else {
+														None
+												}
+										},
+										d: {
+												if wavefronts_to_allocate.contains(&WfType::D) {
+														Some( WaveFront::new(hi, lo))
+												} else {
+														None
+												}
+										},
+										m:  {
+												if wavefronts_to_allocate.contains(&WfType::M) {
+														Some( WaveFront::new(hi, lo))
+												} else {
+														None
+												}
+										},
 								};
 
 								self.wavefront_set.push(Some(wf_set));
