@@ -7,15 +7,13 @@ Constraints:
    * further bound by computing a_k in [wf_align]
 
  */
+use num;
+use std::cmp;
+
 mod utils;
 pub mod types;
 mod config;
 
-use num;
-use std::cmp;
-
-
-const NULL_OFFSET: isize = -10;
 
 pub fn wf_traceback(
     all_wavefronts: &types::WaveFronts,
@@ -47,7 +45,7 @@ pub fn wf_traceback(
     let mut v: usize = utils::compute_v(m_s_k, k);
     let mut h: usize = utils::compute_h(m_s_k, k);
 
-    if config::VERBOSITY >  1 {
+    if config::VERBOSITY >  5 {
         eprintln!("\t\t({}, {})", v, h);
     }
 
@@ -62,7 +60,7 @@ pub fn wf_traceback(
         let gap_extend_score: isize = s - e;
         let mismatch_score: isize = s - x;
 
-        if config::VERBOSITY >  1 {
+        if config::VERBOSITY >  5 {
             eprintln!("\t\tscore: {} \n\
                        \t\tOperation: {:?} \n\
                        \t\t{{\n\
@@ -75,60 +73,62 @@ pub fn wf_traceback(
                       gap_open_score, gap_extend_score, mismatch_score);
         }
 
-        let del_ext: isize = if backtrace_op == types::BacktraceOperation::Insertion {
-            NULL_OFFSET
+        let del_ext: Option<isize> = if backtrace_op == types::BacktraceOperation::Insertion {
+            None
         } else {
-            utils::backtrace_utils::backtrace_deletion_extend_offset(all_wavefronts, gap_extend_score, k).unwrap_or(NULL_OFFSET)
+            utils::backtrace_utils::backtrace_deletion_extend_offset(all_wavefronts, gap_extend_score, k)
         };
 
-        let del_open: isize = if backtrace_op == types::BacktraceOperation::Insertion {
-            NULL_OFFSET
+        let del_open: Option<isize> = if backtrace_op == types::BacktraceOperation::Insertion {
+            None
         } else {
-            utils::backtrace_utils::backtrace_deletion_open_offset(all_wavefronts, gap_open_score, k).unwrap_or(NULL_OFFSET)
+            utils::backtrace_utils::backtrace_deletion_open_offset(all_wavefronts, gap_open_score, k)
         };
 
-        let ins_ext: isize = if backtrace_op == types::BacktraceOperation::Deletion {
-            NULL_OFFSET
+        let ins_ext: Option<isize> = if backtrace_op == types::BacktraceOperation::Deletion {
+            None
         } else {
-            utils::backtrace_utils::backtrace_insertion_extend_offset(all_wavefronts, gap_extend_score, k).unwrap_or(NULL_OFFSET)
+            utils::backtrace_utils::backtrace_insertion_extend_offset(all_wavefronts, gap_extend_score, k)
         };
 
-        let ins_open: isize = if backtrace_op == types::BacktraceOperation::Deletion {
-            NULL_OFFSET
+        let ins_open: Option<isize> = if backtrace_op == types::BacktraceOperation::Deletion {
+            None
         } else {
-            utils::backtrace_utils::backtrace_insertion_open_offset(all_wavefronts, gap_open_score, k).unwrap_or(NULL_OFFSET)
+            utils::backtrace_utils::backtrace_insertion_open_offset(all_wavefronts, gap_open_score, k)
         };
 
-        let misms: isize = if backtrace_op != types::BacktraceOperation::MatchMismatch {
-            NULL_OFFSET
+        let misms: Option<isize> = if backtrace_op != types::BacktraceOperation::MatchMismatch {
+            None
         } else {
-            utils::backtrace_utils::backtrace_mismatch_offset(all_wavefronts, mismatch_score, k).unwrap_or(NULL_OFFSET)
+            utils::backtrace_utils::backtrace_mismatch_offset(all_wavefronts, mismatch_score, k)
         };
 
-        // TODO: remove assignment which only exists for easy debugging
-        let res = vec![del_ext, del_open, ins_ext, ins_open, misms];
         // Compute maximum offset
-        let max_all: isize = *res.iter().max().unwrap();
+        let max_all: Option<isize> = vec![del_ext, del_open, ins_ext, ins_open, misms]
+            .into_iter()
+            .max()
+            .unwrap();
 
-        if config::VERBOSITY > 1 {
+        if config::VERBOSITY > 5 {
+            let res = vec![del_ext, del_open, ins_ext, ins_open, misms];
             eprintln!("\t\tdel_ext, del_open, ins_ext, ins_open, misms\n\
                        \t\tops {:?} \n\
                        \t\toffset {} \n\
-                       \t\tmax_all {} \n\
+                       \t\tmax_all {:?} \n\
                        \t\tbacktrace_op {:?}",
                       res, offset, max_all, backtrace_op);
         }
 
         // Traceback Matches
-        if backtrace_op == types::BacktraceOperation::MatchMismatch && offset >= max_all {
-            let num_matches = (offset - max_all) as usize;
+        if max_all.is_some() && backtrace_op == types::BacktraceOperation::MatchMismatch && offset >= max_all.unwrap() {
+            let num_matches = (offset - max_all.unwrap()) as usize;
             utils::backtrace_utils::backtrace_matches_check(
                 &mut offset,
                 &mut cigar,
                 num_matches,
                 k
             );
-            offset = max_all;
+            offset = max_all.unwrap();
         }
 
         if max_all == del_ext {
@@ -172,21 +172,18 @@ pub fn wf_traceback(
             panic!("Backtrace error: No link found during backtrace");
         }
 
-
-
-
         v = crate::utils::compute_v(offset as i32, k);
         h = crate::utils::compute_h(offset as i32, k);
 
-        if config::VERBOSITY > 1 {
-            eprintln!("\t\t({}, {})", v, h);
+        if config::VERBOSITY > 5 {
+            eprintln!("\t\t({}, {}) s {}", v, h, s);
         }
-        eprintln!();
     }
 
 
+
     // reached the end of one or both of the sequences
-    if score == 0 {
+    if s == 0 {
         // backtrace matches check
         let num_matches = offset as usize;
         utils::backtrace_utils::backtrace_matches_check(
@@ -307,7 +304,7 @@ pub fn wf_next(
         eprintln!("\t[wflambda::wf_next]");
     }
 
-    if config::VERBOSITY > 1 {
+    if config::VERBOSITY > 5 {
         eprintln!("\t\tscore {}", score);
     }
 
@@ -330,13 +327,13 @@ pub fn wf_next(
         (signed_s_e < 0 || wavefronts.get_i_wavefront(unsigned_s_e).is_none()) &&
         (signed_s_e < 0 ||  wavefronts.get_d_wavefront(unsigned_s_e).is_none())
     {
-        if config::VERBOSITY >  1 {
+        if config::VERBOSITY > 5 {
             eprintln!("\t\tskipping score {}", score);
         }
             return;
     }
 
-    if config::VERBOSITY > 1 {
+    if config::VERBOSITY > 5 {
         eprintln!("\t\ts {} s - o - e {} s - e {} s - x {}",
                   s, unsigned_s_o_e, unsigned_s_e, unsigned_s_x);
         eprint!("\t\tk\tI\tD\tM");
@@ -415,7 +412,7 @@ pub fn wf_next(
         ].into_iter().max().unwrap();
 
         // offsets
-        if config::VERBOSITY > 1 {
+        if config::VERBOSITY > 5 {
             eprint!("\t\t{}\t{:?}\t{:?}\t{:?}", k, i_s_k, d_s_k, m_s_k);
             eprintln!();
         }
@@ -436,7 +433,6 @@ pub fn wf_next(
                 }
             },
             _ => { wf_set.i = None }
-            // _ => { wf_set.i = None }
         };
 
         match d_s_k {
@@ -456,13 +452,8 @@ pub fn wf_next(
                     _ => {}
                 }
             },
-            //Some(o) => { wf_set.m.as_mut().unwrap().offsets[k_index] = o },
             _ => { wf_set.m = None }
         };
-
-        // wf_set.i.offsets[k_index] = i_s_k;
-        // wf_set.d.offsets[k_index] = d_s_k;
-        // wf_set.m.offsets[k_index] = m_s_k;
     }
 
     if config::VERBOSITY > 4 {
@@ -642,23 +633,19 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                eprintln!("--------------------");
-
                 let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda);
-
-                eprintln!("--------------------");
-
                 eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
-
-                eprintln!("--------------------");
-
             }
 
             {
                 // different sequences
-                let text  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-                let query = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+                let text  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\
+                             TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGT\
+                             XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+                let query = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\
+                             TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGT\
+                             XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
 
                 let tlen = text.len();
                 let qlen = query.len();
@@ -670,7 +657,9 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                // let score = wf_align(tlen as u32, qlen as u32, &match_lambda);
+                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
+                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
 
             {
@@ -689,6 +678,9 @@ mod tests {
                 };
 
                 // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
+                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+
             }
         }
     }

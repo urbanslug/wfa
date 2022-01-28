@@ -164,35 +164,6 @@ pub mod backtrace_utils {
         });
     }
 
-    pub fn backtrace_deletion_extend_offset(
-        all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
-        k: i32
-    ) -> Option<isize> {
-        if score < 0 {
-            return None;
-        }
-
-        // we know it's >= 0
-        let score = score as usize;
-
-        // make safe use get to return None
-        let d_wf = match all_wavefronts.get_d_wavefront(score) {
-            Some(d) => d,
-            _ => { return None; }
-        };
-        // let d_wf = &all_wavefronts.wavefront_set[score].d;
-
-        if d_wf.lo <= k + 1 && k + 1 <= d_wf.hi {
-            let k_index = crate::utils::compute_k_index(d_wf.len(), k, d_wf.hi);
-            // make safe
-            let d_s_k = d_wf.offsets[k_index+1];
-            Some(d_s_k as isize)
-        } else {
-            None
-        }
-    }
-
     pub fn backtrace_deletion_open_offset(
         all_wavefronts: &crate::types::WaveFronts,
         score: isize,
@@ -202,23 +173,46 @@ pub mod backtrace_utils {
             return None;
         }
 
-        // we know it's >= 0
-        let score = score as usize;
+        // if m_wf.lo <= k + 1 && k + 1 <= m_wf.hi {
+        all_wavefronts
+            .get_d_wavefront(score as usize)
+            .and_then(|d_wf| d_wf.get_offset(k+1))
+            .cloned()
+            .map(|x| x as isize)
+    }
 
-        // make safe use get to return None
-        let m_wf = match all_wavefronts.get_d_wavefront(score) {
-            Some(m) => m,
-            _ => { return None; }
-        };
-
-        if m_wf.lo <= k + 1 && k + 1 <= m_wf.hi {
-            let k_index = crate::utils::compute_k_index(m_wf.len(), k, m_wf.hi);
-            // make safe
-            let d_s_k = m_wf.offsets[k_index+1];
-            Some(d_s_k as isize)
-        } else {
-            None
+    pub fn backtrace_deletion_extend_offset(
+        all_wavefronts: &crate::types::WaveFronts,
+        score: isize,
+        k: i32
+    ) -> Option<isize> {
+        if score < 0 {
+            return None;
         }
+
+        // is d_wf.lo <= k + 1 && k + 1 <= d_wf.hi
+        all_wavefronts
+            .get_d_wavefront(score as usize)
+            .and_then(|d_wf| d_wf.get_offset(k+1))
+            .cloned()
+            .map(|x| x as isize)
+
+    }
+
+    pub fn backtrace_insertion_open_offset(
+        all_wavefronts: &crate::types::WaveFronts,
+        score: isize,
+        k: i32
+    ) -> Option<isize> {
+        if score < 0 {
+            return None;
+        }
+
+        all_wavefronts
+            .get_i_wavefront(score as usize)
+            .and_then(|i_wf| i_wf.get_offset(k-1))
+            .cloned()
+            .map(|x| x as isize + 1)
     }
 
     pub fn backtrace_insertion_extend_offset(
@@ -230,54 +224,12 @@ pub mod backtrace_utils {
             return None;
         }
 
-        // we know it's >= 0
-        let score = score as usize;
-
-        // make safe use get to return None
-        let i_wf = match all_wavefronts.get_i_wavefront(score) {
-            Some(i) => i,
-            _ => { return None; }
-        };
-
-        // let i_wf = &all_wavefronts.wavefront_set[score].i;
-
-        if i_wf.lo <= k - 1 && k - 1 <= i_wf.hi {
-            let k_index = crate::utils::compute_k_index(i_wf.len(), k, i_wf.hi);
-            // make safe
-            let i_s_k = i_wf.offsets[k_index-1];
-            Some(i_s_k as isize)
-        } else {
-            None
-        }
-        }
-
-    pub fn backtrace_insertion_open_offset(
-        all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
-        k: i32
-    ) -> Option<isize> {
-        if score < 0 {
-            return None;
-        }
-
-        // we know it's >= 0
-        let score = score as usize;
-
-        // make safe use get to return None
-        let m_wf = match all_wavefronts.get_i_wavefront(score) {
-            Some(m) => m,
-            _ => { return None; }
-        };
-        // let m_wf = &all_wavefronts.wavefront_set[score].m;
-
-        if m_wf.lo <= k - 1 && k - 1 <= m_wf.hi {
-            let k_index = crate::utils::compute_k_index(m_wf.len(), k, m_wf.hi);
-            // make safe
-            let i_s_k = m_wf.offsets[k_index-1];
-            Some(i_s_k as isize + 1)
-        } else {
-            None
-        }
+        // if i_wf.lo <= k - 1 && k - 1 <= i_wf.hi {
+        all_wavefronts
+            .get_i_wavefront(score as usize)
+            .and_then(|i_wf| i_wf.get_offset(k-1))
+            .cloned()
+            .map(|x| x as isize + 1)
     }
 
     pub fn backtrace_mismatch_offset(
@@ -289,24 +241,11 @@ pub mod backtrace_utils {
             return None;
         }
 
-        // we know it's >= 0
-        let score = score as usize;
-
-        // make safe use get to return None
-        let m_wf = match all_wavefronts.get_i_wavefront(score) {
-            Some(m) => m,
-            _ => { return None; }
-        };
-        // let m_wf = &all_wavefronts.wavefront_set[score].m;
-
-        if m_wf.lo <= k && k <= m_wf.hi {
-            let k_index = crate::utils::compute_k_index(m_wf.len(), k, m_wf.hi);
-            // make safe
-            let m_s_k = m_wf.offsets[k_index];
-            Some(m_s_k as isize + 1)
-        } else {
-            None
-        }
+        all_wavefronts
+            .get_m_wavefront(score as usize)
+            .and_then(|m_wf| m_wf.get_offset(k))
+            .cloned()
+            .map(|x| x as isize + 1)
     }
 }
 
