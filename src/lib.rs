@@ -12,21 +12,21 @@ use std::cmp;
 
 mod utils;
 pub mod types;
-mod config;
 
 
 
 pub fn wf_traceback(
     all_wavefronts: &types::WaveFronts,
-    score: usize
+    score: usize,
+    config: &types::Config
 ) -> String {
-    if config::VERBOSITY > 1 {
+    if config.verbosity > 1 {
         eprintln!("\t[wfa::wf_backtrace]");
     }
 
-    let x: i32 = 4;
-    let o: i32 = 6;
-    let e: i32 = 2;
+    let x: i32 = config.penalties.mismatch;
+    let o: i32 = config.penalties.gap_open;
+    let e: i32 = config.penalties.gap_extend;
 
     let mut cigar = String::new();
 
@@ -45,7 +45,7 @@ pub fn wf_traceback(
     let mut v: usize = utils::compute_v(m_s_k, k);
     let mut h: usize = utils::compute_h(m_s_k, k);
 
-    if config::VERBOSITY >  5 {
+    if config.verbosity >  5 {
         eprintln!("\t\t({}, {})", v, h);
     }
 
@@ -60,7 +60,7 @@ pub fn wf_traceback(
         let gap_extend_score: i32 = s - e;
         let mismatch_score: i32 = s - x;
 
-        if config::VERBOSITY >  5 {
+        if config.verbosity >  5 {
             eprintln!("\t\tscore: {} \n\
                        \t\tOperation: {:?} \n\
                        \t\t{{\n\
@@ -109,7 +109,7 @@ pub fn wf_traceback(
             .max()
             .unwrap();
 
-        if config::VERBOSITY > 5 {
+        if config.verbosity > 5 {
             let res = vec![del_ext, del_open, ins_ext, ins_open, misms];
             eprintln!("\t\tdel_ext, del_open, ins_ext, ins_open, misms\n\
                        \t\tops {:?} \n\
@@ -177,7 +177,7 @@ pub fn wf_traceback(
         v = crate::utils::compute_v(offset as i32, k);
         h = crate::utils::compute_h(offset as i32, k);
 
-        if config::VERBOSITY > 5 {
+        if config.verbosity > 5 {
             eprintln!("\t\t({}, {}) s {}", v, h, s);
         }
     }
@@ -212,11 +212,12 @@ pub fn wf_traceback(
 pub fn wf_extend<F>(
     m_wavefront: &mut types::WaveFront,
     match_lambda: &F,
+    config: &types::Config
 )
 where
     F: Fn(usize, usize) -> bool,
 {
-    if config::VERBOSITY > 1 {
+    if config.verbosity > 1 {
         eprintln!("\t[wflambda::wf_extend]");
     }
 
@@ -237,7 +238,7 @@ where
 
         while match_lambda(v, h) {
 
-            if config::VERBOSITY > 254 {
+            if config.verbosity > 254 {
                 eprintln!("\t[wflambda::wf_extend]\n\
                            \t\t({} {})",
                           v, h);
@@ -298,20 +299,21 @@ fn compute_wf_next_limits(
 
 pub fn wf_next(
     wavefronts: &mut types::WaveFronts,
-    score: usize
+    score: usize,
+    config: &types::Config
 ) {
-    if config::VERBOSITY > 1 {
+    if config.verbosity > 1 {
         eprintln!("\t[wflambda::wf_next]");
     }
 
-    if config::VERBOSITY > 5 {
+    if config.verbosity > 5 {
         eprintln!("\t\tscore {}", score);
     }
 
     let s: i32 = score as i32;
-    let x: i32 = 4;
-    let o: i32 = 6;
-    let e: i32 = 2;
+    let x: i32 = config.penalties.mismatch;
+    let o: i32 = config.penalties.gap_open;
+    let e: i32 = config.penalties.gap_extend;
 
     let signed_s_x: i32 = s - x;
     let signed_s_o_e: i32 = s - o - e;
@@ -327,13 +329,13 @@ pub fn wf_next(
         (signed_s_e < 0 || wavefronts.get_i_wavefront(unsigned_s_e).is_none()) &&
         (signed_s_e < 0 ||  wavefronts.get_d_wavefront(unsigned_s_e).is_none())
     {
-        if config::VERBOSITY > 5 {
+        if config.verbosity > 5 {
             eprintln!("\t\tskipping score {}", score);
         }
             return;
     }
 
-    if config::VERBOSITY > 5 {
+    if config.verbosity > 5 {
         eprintln!("\t\ts {} s - o - e {} s - e {} s - x {}",
                   s, unsigned_s_o_e, unsigned_s_e, unsigned_s_x);
         eprint!("\t\tk\tI\tD\tM");
@@ -351,7 +353,7 @@ pub fn wf_next(
     let allocation_result = wavefronts.allocate_wavefronts(score as u32, lo, hi, &wavefronts_to_allocate);
     match allocation_result {
         Ok(_) => {
-            if config::VERBOSITY > 254 {
+            if config.verbosity > 254 {
                 eprintln!("\t\tallocated wfs for score: {} \n\
                            \t {:?}"
                           , score, wavefronts.wavefront_set[score])
@@ -374,7 +376,7 @@ pub fn wf_next(
         let k_index: usize = utils::compute_k_index(wave_length, k, hi);
         let k_index_add_one: usize = utils::compute_k_index(wave_length, k+1, hi);
 
-        if  config::VERBOSITY > 254 {
+        if  config.verbosity > 254 {
             eprintln!("\t\t\tk: {}\tk-1 {}\tk-index {}\tk+1 {}",
                       k, k_index_sub_one, k_index, k_index_add_one);
         }
@@ -412,7 +414,7 @@ pub fn wf_next(
         ].into_iter().max().unwrap();
 
         // offsets
-        if config::VERBOSITY > 5 {
+        if config.verbosity > 5 {
             eprint!("\t\t{}\t{:?}\t{:?}\t{:?}", k, i_s_k, d_s_k, m_s_k);
             eprintln!();
         }
@@ -456,7 +458,7 @@ pub fn wf_next(
         };
     }
 
-    if config::VERBOSITY > 4 {
+    if config.verbosity > 4 {
         eprintln!();
     }
 }
@@ -465,12 +467,13 @@ pub fn wf_next(
 pub fn wf_align<F>(
     tlen: u32,
     qlen: u32,
-    match_lambda: &F
+    match_lambda: &F,
+    config: &types::Config
 ) -> (usize, String)
 where
     F: Fn(usize, usize) -> bool
 {
-    if config::VERBOSITY > 1 {
+    if config.verbosity > 1 {
         eprintln!("[wflambda::wf_align]");
     }
 
@@ -510,7 +513,7 @@ where
     assert_eq!(all_wavefronts.get_m_wavefront(score).unwrap().offsets[a_k], 0);
 
     // Print config
-    if config::VERBOSITY > 0 {
+    if config.verbosity > 0 {
         eprintln!("Config\n\
                    \ttlen: {}\n\
                    \tqlen: {}\n\
@@ -519,7 +522,7 @@ where
                   qlen, tlen, a_k, a_offset);
     }
 
-    if config::VERBOSITY > 2 {
+    if config.verbosity > 2 {
         eprintln!("Loop");
     }
 
@@ -533,13 +536,13 @@ where
                 .m
                 .as_mut()
                 .unwrap();
-            wf_extend(m_wf_mut, match_lambda);
+            wf_extend(m_wf_mut, match_lambda, &config);
         }
 
         // Check whether we have reached the final point
         // Get the m-wavefront with the current score
         if utils::end_reached(all_wavefronts.get_m_wavefront(score), a_k, a_offset) {
-            if config::VERBOSITY > 1 {
+            if config.verbosity > 1 {
                 let m_s: &types::WaveFront = all_wavefronts.get_m_wavefront(score).unwrap();
                 let i_s: &types::WaveFront = all_wavefronts.get_m_wavefront(score).unwrap();
                 let d_s: &types::WaveFront = all_wavefronts.get_m_wavefront(score).unwrap();
@@ -565,11 +568,11 @@ where
         score += 1;
 
         // compute the next wavefront
-        wf_next(&mut all_wavefronts, score);
+        wf_next(&mut all_wavefronts, score, config);
     }
 
     // let cigar = String::new();
-    let cigar = wf_traceback(&all_wavefronts, score);
+    let cigar = wf_traceback(&all_wavefronts, score, config);
 
     let each_wf = vec![ types::WfType::M ];
     utils::debug_utils::visualize_all(&all_wavefronts, a_offset*2, &each_wf);
@@ -580,6 +583,18 @@ where
 
 #[cfg(test)]
 mod tests {
+    mod test_config {
+        pub static CONFIG: crate::types::Config = crate::types::Config {
+            adapt: false,
+            verbosity: 0,
+            penalties: crate::types:: Penalties {
+                mismatch: 4,
+                matches: 0,
+                gap_open: 6,
+                gap_extend: 2,
+            },
+        };
+    }
 
     mod core_functions {
         #[test]
@@ -590,7 +605,7 @@ mod tests {
 
     mod align {
 
-        use super::super::*;
+        use super::{super::*, *};
 
         #[test]
         fn align_same_sequence() {
@@ -608,7 +623,7 @@ mod tests {
                 v < tlen && h < qlen && t[v] == q[h]
             };
 
-            let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
+            let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
 
             assert_eq!(score, 0);
 
@@ -633,7 +648,7 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda);
+                let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda, &test_config::CONFIG);
                 eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
@@ -657,7 +672,7 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
+                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
                 // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
@@ -677,7 +692,7 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda);
+                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
                 // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
 

@@ -4,8 +4,30 @@ wavefront types
 
 use num;
 
+// ----------------------
+//         Config
+// ----------------------
+// TODO: use u8
+pub struct Penalties {
+    pub mismatch: i32,
+    pub matches: i32,
+    pub gap_open: i32,
+    pub gap_extend: i32,
+}
+
+pub struct Config {
+    pub adapt: bool,
+    // pub segment_length: u32, // segment size in bytes
+    // pub step_size: u32,
+    // pub thread_count: usize,
+    pub verbosity: u8,
+    pub penalties: Penalties,
+}
 
 
+// ----------------------
+//     Core types
+// ----------------------
 #[derive(Debug, PartialEq, Eq)]
 pub enum WfType {
     D,
@@ -34,7 +56,6 @@ pub struct WaveFront {
     /// vals\[0\] is the score of the wavefront at diagonal hi and
     /// vals\[<last>\] is the score of the wavefront at diagonal lo
     /// length is (hi - lo) + 1
-    // TODO: rename vals to offsets
     pub offsets: Vec<i32>,
 }
 
