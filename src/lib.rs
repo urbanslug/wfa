@@ -255,16 +255,18 @@ where
 
 fn compute_wf_next_limits(
     wavefronts: &types::WaveFronts,
-    score: isize
+    score: isize,
+    config: &types::Config
 ) -> (i32, i32) {
     let s: isize = score;
-    let x: isize = 4;
-    let o: isize = 6;
-    let e: isize = 2;
+    let x: i32 = config.penalties.mismatch;
+    let o: i32 = config.penalties.gap_open;
+    let e: i32 = config.penalties.gap_extend;
 
-    let s_x: isize = s - x;
-    let s_o_e: isize = s - o - e;
-    let s_e: isize = s - e;
+
+    let s_x: isize = s - x as isize;
+    let s_o_e: isize = s - o as isize - e as isize;
+    let s_e: isize = s - e as isize;
 
     let hi_or_min = |maybe_wf: Option<&types::WaveFront>| -> i32 {
         match maybe_wf {
@@ -294,6 +296,7 @@ fn compute_wf_next_limits(
         lo_or_max(wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e))),
     ].iter().min().unwrap() - 1;
 
+    // TODO: return Option<lo> and Option<hi>
     (hi, lo)
 }
 
@@ -344,7 +347,7 @@ pub fn wf_next(
 
     // compute the highest/rightmost and lowest/leftmost diagonal for a
     // wavefront with the given score will reach
-    let (hi, lo) = compute_wf_next_limits(&wavefronts, score as isize);
+    let (hi, lo) = compute_wf_next_limits(&wavefronts, score as isize, config);
 
     // Vec::<types::WfType>::new();
     let wavefronts_to_allocate = vec![types::WfType::I, types::WfType::D, types::WfType::M];
