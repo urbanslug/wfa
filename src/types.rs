@@ -5,18 +5,19 @@ wavefront types
 use num;
 
 
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum WfType {
-		D,
-		I,
-		M
+    D,
+    I,
+    M
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BacktraceOperation {
-		MatchMismatch,
-		Insertion,
-		Deletion
+    MatchMismatch,
+    Insertion,
+    Deletion
 }
 
 /// The a single wavefront with a score
@@ -32,7 +33,7 @@ pub struct WaveFront {
     /// vals\[0\] is the score of the wavefront at diagonal hi and
     /// vals\[<last>\] is the score of the wavefront at diagonal lo
     /// length is (hi - lo) + 1
-		// TODO: rename vals to offsets
+    // TODO: rename vals to offsets
     pub offsets: Vec<i32>,
 }
 
@@ -47,15 +48,15 @@ impl WaveFront {
         }
     }
 
-		pub fn len(&self) -> usize {
-				let wave_length = num::abs_sub(self.hi, self.lo) as usize + 1;
-				let offset_len = self.offsets.len();
-				if wave_length != offset_len {
-						panic!("len error")
-				}
+    pub fn len(&self) -> usize {
+        let wave_length = num::abs_sub(self.hi, self.lo) as usize + 1;
+        let offset_len = self.offsets.len();
+        if wave_length != offset_len {
+            panic!("len error")
+        }
 
-				offset_len
-		}
+        offset_len
+    }
 }
 
 /// The set of wavefronts at a certain score
@@ -63,7 +64,7 @@ pub struct WaveFrontSet {
     /// insertion wavefront
     pub i: Option<WaveFront>,
 
-		/// deletion wavefront
+    /// deletion wavefront
     pub d: Option<WaveFront>,
 
     /// match wavefront
@@ -78,116 +79,116 @@ pub struct WaveFronts {
     /// WF_s is wavefront_set\[s\]
     pub wavefront_set: Vec<Option<WaveFrontSet>>,
 
-		pub min_k: i32,
-		pub max_k: i32,
-		pub a_k: usize
+    pub min_k: i32,
+    pub max_k: i32,
+    pub a_k: usize
 }
 
 impl WaveFronts {
-		/// The scores should always be positive numbers
-		pub fn get(&self, score: usize) -> &Option<WaveFrontSet> {
-				&self.wavefront_set[score]
-		}
+    /// The scores should always be positive numbers
+    pub fn get(&self, score: usize) -> &Option<WaveFrontSet> {
+        &self.wavefront_set[score]
+    }
 
-		pub fn option_get(&self, score: usize) -> Option<&WaveFrontSet> {
-				self.wavefront_set
-						.get(score)
-						.and_then(|maybe_wf_set| maybe_wf_set.as_ref())
-		}
+    pub fn option_get(&self, score: usize) -> Option<&WaveFrontSet> {
+        self.wavefront_set
+            .get(score)
+            .and_then(|maybe_wf_set| maybe_wf_set.as_ref())
+    }
 
-		pub fn get_wavefronts(&self, score: usize) -> Option<&WaveFrontSet> {
-				self.wavefront_set
-						.get(score)
-						.and_then(|maybe_wf_set| maybe_wf_set.as_ref())
-		}
+    pub fn get_wavefronts(&self, score: usize) -> Option<&WaveFrontSet> {
+        self.wavefront_set
+            .get(score)
+            .and_then(|maybe_wf_set| maybe_wf_set.as_ref())
+    }
 
-		pub fn get_m_wavefront(&self, score: usize) -> Option<&WaveFront> {
-				let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
-				match maybe_wf_set {
-						Some(v) => v.m.as_ref(),
-						_ => None
-				}
-		}
+    pub fn get_m_wavefront(&self, score: usize) -> Option<&WaveFront> {
+        let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
+        match maybe_wf_set {
+            Some(v) => v.m.as_ref(),
+            _ => None
+        }
+    }
 
-		pub fn get_i_wavefront(&self, score: usize) -> Option<&WaveFront> {
-				let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
-				match maybe_wf_set {
-						Some(v) => v.i.as_ref(),
-						_ => None
-				}
-		}
+    pub fn get_i_wavefront(&self, score: usize) -> Option<&WaveFront> {
+        let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
+        match maybe_wf_set {
+            Some(v) => v.i.as_ref(),
+            _ => None
+        }
+    }
 
-		pub fn get_d_wavefront(&self, score: usize) -> Option<&WaveFront> {
-				let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
-				match maybe_wf_set {
-						Some(v) => v.d.as_ref(),
-						_ => None
-				}
-		}
+    pub fn get_d_wavefront(&self, score: usize) -> Option<&WaveFront> {
+        let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
+        match maybe_wf_set {
+            Some(v) => v.d.as_ref(),
+            _ => None
+        }
+    }
 
-		pub fn set_i_d_m(&mut self, score: usize) {
-				let wf_set: &mut Option<WaveFrontSet> = self.wavefront_set.get_mut(score).unwrap();
-				let wf_set: &mut Option<WaveFrontSet> = &mut self.wavefront_set[score];
-		}
+    pub fn set_i_d_m(&mut self, score: usize) {
+        let wf_set: &mut Option<WaveFrontSet> = self.wavefront_set.get_mut(score).unwrap();
+        let wf_set: &mut Option<WaveFrontSet> = &mut self.wavefront_set[score];
+    }
 
-		pub fn len(&self) -> usize {
-				self.wavefront_set.len()
-		}
+    pub fn len(&self) -> usize {
+        self.wavefront_set.len()
+    }
 
-		pub fn max_score(&self) -> u32 {
-				(self.len() - 1) as u32
-		}
+    pub fn max_score(&self) -> u32 {
+        (self.len() - 1) as u32
+    }
 
-		// Allocate wavefronts (I, D, or M) for the given score
-		pub fn allocate_wavefronts(
-				&mut self,
-				score: u32,
-				lo: i32,
-				hi: i32,
-				wavefronts_to_allocate: &Vec<WfType>
-		) -> Result<(), &str>
-		{
-				// should only add what is necessary
-				let max_score = self.max_score();
+    // Allocate wavefronts (I, D, or M) for the given score
+    pub fn allocate_wavefronts(
+        &mut self,
+        score: u32,
+        lo: i32,
+        hi: i32,
+        wavefronts_to_allocate: &Vec<WfType>
+    ) -> Result<(), &str>
+    {
+        // should only add what is necessary
+        let max_score = self.max_score();
 
-				if max_score >= score {
-						// we are trying to add a score that exists
-						// eprintln!("previous score {} score {}", prev_score, score);
-						return Err("[types::allocate_wavefronts] fuckery detected");
-				}
+        if max_score >= score {
+            // we are trying to add a score that exists
+            // eprintln!("previous score {} score {}", prev_score, score);
+            return Err("[types::allocate_wavefronts] fuckery detected");
+        }
 
-				for index in max_score+1..=score {
-						if index == score {
-								let wf_set = WaveFrontSet {
-										i: {
-												if wavefronts_to_allocate.contains(&WfType::I) {
-														Some( WaveFront::new(hi, lo))
-												} else {
-														None
-												}
-										},
-										d: {
-												if wavefronts_to_allocate.contains(&WfType::D) {
-														Some( WaveFront::new(hi, lo))
-												} else {
-														None
-												}
-										},
-										m:  {
-												if wavefronts_to_allocate.contains(&WfType::M) {
-														Some( WaveFront::new(hi, lo))
-												} else {
-														None
-												}
-										},
-								};
+        for index in max_score+1..=score {
+            if index == score {
+                let wf_set = WaveFrontSet {
+                    i: {
+                        if wavefronts_to_allocate.contains(&WfType::I) {
+                            Some( WaveFront::new(hi, lo))
+                        } else {
+                            None
+                        }
+                    },
+                    d: {
+                        if wavefronts_to_allocate.contains(&WfType::D) {
+                            Some( WaveFront::new(hi, lo))
+                        } else {
+                            None
+                        }
+                    },
+                    m:  {
+                        if wavefronts_to_allocate.contains(&WfType::M) {
+                            Some( WaveFront::new(hi, lo))
+                        } else {
+                            None
+                        }
+                    },
+                };
 
-								self.wavefront_set.push(Some(wf_set));
-						} else {
-								self.wavefront_set.push(None);
-						}
-				}
+                self.wavefront_set.push(Some(wf_set));
+            } else {
+                self.wavefront_set.push(None);
+            }
+        }
 
-				Ok(())
-		}
+        Ok(())
+    }
 }

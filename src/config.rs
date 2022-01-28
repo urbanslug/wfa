@@ -1,1 +1,1 @@
-pub const VERBOSITY: u8 = 5;
+pub const VERBOSITY: u8 = 2;
