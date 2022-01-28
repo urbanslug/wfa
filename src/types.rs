@@ -22,6 +22,7 @@ pub enum BacktraceOperation {
 
 /// The a single wavefront with a score
 /// The furthest reaching point of a single wavefront
+#[derive(Debug)]
 pub struct WaveFront {
     /// the highest diagonal touched by the wavefront
     pub hi: i32,
@@ -49,6 +50,7 @@ impl WaveFront {
     }
 
     pub fn len(&self) -> usize {
+        // TODO merge with utils
         let wave_length = num::abs_sub(self.hi, self.lo) as usize + 1;
         let offset_len = self.offsets.len();
         if wave_length != offset_len {
@@ -57,9 +59,23 @@ impl WaveFront {
 
         offset_len
     }
+
+    // takes the diagonal k (not k-index)
+    pub fn get_offset(&self, k: i32) -> Option<&i32> {
+        let wave_length = self.len();
+
+        // TODO: merge with utils::compute_k_index
+        if (self.hi - k) < 0 || wave_length as i32 - (self.hi - k) < 1 {
+            return None;
+        }
+
+        let k_index: usize = wave_length - ((self.hi - k) as usize) - 1;
+        self.offsets.get(k_index)
+    }
 }
 
 /// The set of wavefronts at a certain score
+#[derive(Debug)]
 pub struct WaveFrontSet {
     /// insertion wavefront
     pub i: Option<WaveFront>,
