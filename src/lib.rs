@@ -15,18 +15,18 @@ pub mod types;
 mod config;
 
 
+
 pub fn wf_traceback(
     all_wavefronts: &types::WaveFronts,
     score: usize
 ) -> String {
-
     if config::VERBOSITY > 1 {
         eprintln!("\t[wfa::wf_backtrace]");
     }
 
-    let x: isize = 4;
-    let o: isize = 6;
-    let e: isize = 2;
+    let x: i32 = 4;
+    let o: i32 = 6;
+    let e: i32 = 2;
 
     let mut cigar = String::new();
 
@@ -51,14 +51,14 @@ pub fn wf_traceback(
 
     let mut backtrace_op = types::BacktraceOperation::MatchMismatch;
 
-    let mut s = score as isize;
-    let mut offset = m_s_k as isize;
+    let mut s = score as i32;
+    let mut offset = m_s_k as i32;
 
     while v > 0 && h > 0 && s > 0 {
         // compute scores
-        let gap_open_score: isize = s - o - e;
-        let gap_extend_score: isize = s - e;
-        let mismatch_score: isize = s - x;
+        let gap_open_score: i32 = s - o - e;
+        let gap_extend_score: i32 = s - e;
+        let mismatch_score: i32 = s - x;
 
         if config::VERBOSITY >  5 {
             eprintln!("\t\tscore: {} \n\
@@ -73,38 +73,38 @@ pub fn wf_traceback(
                       gap_open_score, gap_extend_score, mismatch_score);
         }
 
-        let del_ext: Option<isize> = if backtrace_op == types::BacktraceOperation::Insertion {
+        let del_ext: Option<i32> = if backtrace_op == types::BacktraceOperation::Insertion {
             None
         } else {
             utils::backtrace_utils::backtrace_deletion_extend_offset(all_wavefronts, gap_extend_score, k)
         };
 
-        let del_open: Option<isize> = if backtrace_op == types::BacktraceOperation::Insertion {
+        let del_open: Option<i32> = if backtrace_op == types::BacktraceOperation::Insertion {
             None
         } else {
             utils::backtrace_utils::backtrace_deletion_open_offset(all_wavefronts, gap_open_score, k)
         };
 
-        let ins_ext: Option<isize> = if backtrace_op == types::BacktraceOperation::Deletion {
+        let ins_ext: Option<i32> = if backtrace_op == types::BacktraceOperation::Deletion {
             None
         } else {
             utils::backtrace_utils::backtrace_insertion_extend_offset(all_wavefronts, gap_extend_score, k)
         };
 
-        let ins_open: Option<isize> = if backtrace_op == types::BacktraceOperation::Deletion {
+        let ins_open: Option<i32> = if backtrace_op == types::BacktraceOperation::Deletion {
             None
         } else {
             utils::backtrace_utils::backtrace_insertion_open_offset(all_wavefronts, gap_open_score, k)
         };
 
-        let misms: Option<isize> = if backtrace_op != types::BacktraceOperation::MatchMismatch {
+        let misms: Option<i32> = if backtrace_op != types::BacktraceOperation::MatchMismatch {
             None
         } else {
             utils::backtrace_utils::backtrace_mismatch_offset(all_wavefronts, mismatch_score, k)
         };
 
         // Compute maximum offset
-        let max_all: Option<isize> = vec![del_ext, del_open, ins_ext, ins_open, misms]
+        let max_all: Option<i32> = vec![del_ext, del_open, ins_ext, ins_open, misms]
             .into_iter()
             .max()
             .unwrap();
@@ -120,8 +120,10 @@ pub fn wf_traceback(
         }
 
         // Traceback Matches
-        if max_all.is_some() && backtrace_op == types::BacktraceOperation::MatchMismatch && offset >= max_all.unwrap() {
-            let num_matches = (offset - max_all.unwrap()) as usize;
+        if max_all.is_some() &&
+            backtrace_op == types::BacktraceOperation::MatchMismatch &&
+            offset >= max_all.unwrap() {
+            let num_matches = (offset - max_all.unwrap()) as u32;
             utils::backtrace_utils::backtrace_matches_check(
                 &mut offset,
                 &mut cigar,
@@ -180,12 +182,10 @@ pub fn wf_traceback(
         }
     }
 
-
-
     // reached the end of one or both of the sequences
     if s == 0 {
         // backtrace matches check
-        let num_matches = offset as usize;
+        let num_matches = offset as u32;
         utils::backtrace_utils::backtrace_matches_check(
             &mut offset,
             &mut cigar,

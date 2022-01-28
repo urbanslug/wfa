@@ -148,12 +148,11 @@ pub mod backtrace_utils {
     }
 
     pub fn backtrace_matches_check(
-        offset: &mut isize,
+        offset: &mut i32,
         cigar: &mut String,
-        num_matches: usize,
+        num_matches: u32,
         k: i32,
-    )
-    {
+    ) {
         // TODO: improve this add M x-times and subtruct offset by num_matches
         (0..num_matches).for_each(|_| {
             // let v = compute_v(*offset, k, central_diagonal);
@@ -166,9 +165,9 @@ pub mod backtrace_utils {
 
     pub fn backtrace_deletion_open_offset(
         all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
+        score: i32,
         k: i32
-    ) -> Option<isize> {
+    ) -> Option<i32> {
         if score < 0 {
             return None;
         }
@@ -178,14 +177,13 @@ pub mod backtrace_utils {
             .get_d_wavefront(score as usize)
             .and_then(|d_wf| d_wf.get_offset(k+1))
             .cloned()
-            .map(|x| x as isize)
     }
 
     pub fn backtrace_deletion_extend_offset(
         all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
+        score: i32,
         k: i32
-    ) -> Option<isize> {
+    ) -> Option<i32> {
         if score < 0 {
             return None;
         }
@@ -195,15 +193,13 @@ pub mod backtrace_utils {
             .get_d_wavefront(score as usize)
             .and_then(|d_wf| d_wf.get_offset(k+1))
             .cloned()
-            .map(|x| x as isize)
-
     }
 
     pub fn backtrace_insertion_open_offset(
         all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
+        score: i32,
         k: i32
-    ) -> Option<isize> {
+    ) -> Option<i32> {
         if score < 0 {
             return None;
         }
@@ -212,14 +208,14 @@ pub mod backtrace_utils {
             .get_i_wavefront(score as usize)
             .and_then(|i_wf| i_wf.get_offset(k-1))
             .cloned()
-            .map(|x| x as isize + 1)
+            .map(|x| x + 1)
     }
 
     pub fn backtrace_insertion_extend_offset(
         all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
+        score: i32,
         k: i32
-    ) -> Option<isize> {
+    ) -> Option<i32> {
         if score < 0 {
             return None;
         }
@@ -229,14 +225,14 @@ pub mod backtrace_utils {
             .get_i_wavefront(score as usize)
             .and_then(|i_wf| i_wf.get_offset(k-1))
             .cloned()
-            .map(|x| x as isize + 1)
+            .map(|x| x + 1)
     }
 
     pub fn backtrace_mismatch_offset(
         all_wavefronts: &crate::types::WaveFronts,
-        score: isize,
+        score: i32,
         k: i32
-    ) -> Option<isize> {
+    ) -> Option<i32> {
         if score < 0 {
             return None;
         }
@@ -245,7 +241,7 @@ pub mod backtrace_utils {
             .get_m_wavefront(score as usize)
             .and_then(|m_wf| m_wf.get_offset(k))
             .cloned()
-            .map(|x| x as isize + 1)
+            .map(|x| x + 1)
     }
 }
 
