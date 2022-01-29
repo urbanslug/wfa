@@ -597,7 +597,7 @@ where
     let cigar = wf_traceback(&all_wavefronts, score, config);
 
     let each_wf = vec![ types::WfType::M ];
-    utils::debug_utils::visualize_all(&all_wavefronts, a_offset*2, &each_wf, &match_posititons, config);
+    utils::debug_utils::visualize_all(&all_wavefronts, a_offset, &each_wf, &match_posititons, config);
 
     (score, cigar)
 }

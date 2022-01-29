@@ -59,9 +59,8 @@ pub fn end_reached(
 }
 
 pub mod backtrace_utils {
-
+    // O(n)
     pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
-
         let mut query = String::new();
         let mut marker = String::new();
         let mut text = String::new();
@@ -110,7 +109,9 @@ pub mod backtrace_utils {
         eprintln!("{}", text);
     }
 
-    // just make the cigar proper
+
+    // Compare current to next and accumulate counts
+    // O(n)
     pub fn run_length_encode(cigar: &str, reverse: bool) -> String {
         let mut cigar = String::from(cigar);
         if reverse {
@@ -259,7 +260,11 @@ pub mod debug_utils {
             eprintln!("[utils::visualize_all]");
         }
 
-        let dim = (a_offset as usize+10, a_offset as usize+10);
+        if config.verbosity > 2 {
+            eprintln!("\tPopulating matrix");
+        }
+
+        let dim = (a_offset as usize+1, a_offset as usize+1);
         let x = ndarray::Dim(dim);
         let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
 
@@ -316,13 +321,20 @@ pub mod debug_utils {
         }
 
         for (v, h, score) in match_positions {
-            matrix[[*v,*h]] = Some(*score as i32);
+            let v = *v;
+            let h = *h;
+            if v == h {
+                matrix[[v, h]] = Some(*score as i32);
+            }
         }
 
-        gen_image(&matrix);
+        gen_image(&matrix, config);
     }
 
-    fn gen_image(matrix: &Array2<Option<i32>>) {
+    fn gen_image(matrix: &Array2<Option<i32>>, config: &types::Config) {
+        if config.verbosity > 1 {
+            eprintln!("[utils::gen_image]");
+        }
 
         let config = ndarray_to_img::Config {
             verbosity: 0,
@@ -332,7 +344,6 @@ pub mod debug_utils {
             draw_boundaries: true,
             scaling_factor: 10,
         };
-
 
         let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);
         let image_name = "all.png";
