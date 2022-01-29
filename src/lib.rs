@@ -212,7 +212,8 @@ pub fn wf_traceback(
 pub fn wf_extend<F>(
     m_wavefront: &mut types::WaveFront,
     match_lambda: &F,
-    config: &types::Config
+    config: &types::Config,
+    match_positions: &mut Vec<(usize, usize, usize)>
 )
 where
     F: Fn(usize, usize) -> bool,
@@ -238,6 +239,8 @@ where
 
         while match_lambda(v, h) {
 
+
+
             if config.verbosity > 254 {
                 eprintln!("\t[wflambda::wf_extend]\n\
                            \t\t({} {})",
@@ -246,6 +249,9 @@ where
 
             // increment our offset on the m_wavefront
             m_wavefront.offsets[k_index] += 1;
+
+            let offset = m_wavefront.offsets[k_index];
+            match_positions.push((v, h, offset as usize));
 
             v+=1;
             h+=1;
@@ -522,7 +528,9 @@ where
     // unnecessary
     // score ... diagonal
     // all_wavefronts.wavefront_set[0].m.vals[0] = 0;
-    assert_eq!(all_wavefronts.get_m_wavefront(score).unwrap().offsets[a_k], 0);
+    assert_eq!(all_wavefronts.get_m_wavefront(score).unwrap().get_offset(a_k as i32).cloned().unwrap(), 0);
+
+    let mut match_posititons: Vec<(usize, usize, usize)> = Vec::new();
 
     // Print config
     if config.verbosity > 0 {
@@ -548,7 +556,7 @@ where
                 .m
                 .as_mut()
                 .unwrap();
-            wf_extend(m_wf_mut, match_lambda, &config);
+            wf_extend(m_wf_mut, match_lambda, &config, &mut match_posititons);
         }
 
         // Check whether we have reached the final point
@@ -588,8 +596,8 @@ where
     // let cigar = String::new();
     let cigar = wf_traceback(&all_wavefronts, score, config);
 
-    let each_wf = vec![ types::WfType::I, types::WfType::D, types::WfType::M ];
-    utils::debug_utils::visualize_all(&all_wavefronts, a_offset*2, &each_wf);
+    let each_wf = vec![ types::WfType::M ];
+    utils::debug_utils::visualize_all(&all_wavefronts, a_offset*2, &each_wf, &match_posititons, config);
 
     (score, cigar)
 }
@@ -600,7 +608,7 @@ mod tests {
     mod test_config {
         pub static CONFIG: crate::types::Config = crate::types::Config {
             adapt: false,
-            verbosity: 1,
+            verbosity: 5,
             penalties: crate::types:: Penalties {
                 mismatch: 4,
                 matches: 0,
@@ -662,19 +670,15 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda, &test_config::CONFIG);
-                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+                // let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda, &test_config::CONFIG);
+                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
 
             {
                 // different sequences
-                let text  = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\
-                             TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGT\
-                             XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
-                let query = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\
-                             TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGT\
-                             XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+                let text  = "TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGT";
+                let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGT";
 
                 let tlen = text.len();
                 let qlen = query.len();
@@ -686,9 +690,9 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
-                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+                let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
 
             {
@@ -706,9 +710,9 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
-                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
+                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
         }
     }

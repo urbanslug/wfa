@@ -251,8 +251,14 @@ pub mod debug_utils {
     pub fn visualize_all(
         all_wavefronts: &types::WaveFronts,
         a_offset: u32,
-        each_wf: &Vec<types::WfType>
+        each_wf: &Vec<types::WfType>,
+        match_positions: &Vec<(usize, usize, usize)>,
+        config: &types::Config
     ) {
+        if config.verbosity > 1 {
+            eprintln!("[utils::visualize_all]");
+        }
+
         let dim = (a_offset as usize+10, a_offset as usize+10);
         let x = ndarray::Dim(dim);
         let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
@@ -309,6 +315,15 @@ pub mod debug_utils {
             }
         }
 
+        for (v, h, score) in match_positions {
+            matrix[[*v,*h]] = Some(*score as i32);
+        }
+
+        gen_image(&matrix);
+    }
+
+    fn gen_image(matrix: &Array2<Option<i32>>) {
+
         let config = ndarray_to_img::Config {
             verbosity: 0,
             with_color: true,
@@ -317,6 +332,7 @@ pub mod debug_utils {
             draw_boundaries: true,
             scaling_factor: 10,
         };
+
 
         let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);
         let image_name = "all.png";
