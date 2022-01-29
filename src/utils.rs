@@ -292,7 +292,7 @@ pub mod debug_utils {
                     let k_index: usize = compute_k_index(len, k, hi);
                     let m_s_k: i32 = offsets[k_index];
 
-                    for offset in  0..=m_s_k {
+                    for offset in  m_s_k..=m_s_k {
                         let v: usize = compute_v(offset, k);
                         let h: usize = compute_h(offset, k);
 
@@ -323,4 +323,3 @@ pub mod debug_utils {
         ndarray_to_img::generate_image(&scaled_matrix, &config, &image_name).unwrap();
     }
 }
-

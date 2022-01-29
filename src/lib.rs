@@ -255,48 +255,48 @@ where
 
 fn compute_wf_next_limits(
     wavefronts: &types::WaveFronts,
-    score: isize,
+    score: usize,
     config: &types::Config
-) -> (i32, i32) {
-    let s: isize = score;
+) -> (Option<i32>, Option<i32>) {
+
+    enum WfLimit {
+        Hi,
+        Lo
+    }
+
+    let s: i32 = score as i32;
     let x: i32 = config.penalties.mismatch;
     let o: i32 = config.penalties.gap_open;
     let e: i32 = config.penalties.gap_extend;
 
+    let s_x = s - x;
+    let s_o_e = s - o - e;
+    let s_e = s - e;
 
-    let s_x: isize = s - x as isize;
-    let s_o_e: isize = s - o as isize - e as isize;
-    let s_e: isize = s - e as isize;
-
-    let hi_or_min = |maybe_wf: Option<&types::WaveFront>| -> i32 {
+    let foo = |maybe_wf: Option<&types::WaveFront>, limit: WfLimit| -> Option<i32> {
         match maybe_wf {
-            Some(wf) => wf.hi,
-            _ => i32::MIN
+            Some(wf) => match limit {
+                WfLimit::Hi => Some(wf.hi),
+                WfLimit::Lo => Some(wf.lo)
+            },
+            _ => None
         }
     };
 
-    let lo_or_max = |maybe_wf: Option<&types::WaveFront>| -> i32 {
-        match maybe_wf {
-            Some(wf) => wf.lo,
-            _ => i32::MAX
-        }
-    };
+    let hi: Option<i32> = vec![
+        foo(wavefronts.get_m_wavefront(s_x as usize), WfLimit::Hi),
+        foo(wavefronts.get_m_wavefront(s_o_e as usize), WfLimit::Hi),
+        foo(wavefronts.get_i_wavefront(s_e as usize), WfLimit::Hi),
+        foo(wavefronts.get_d_wavefront(s_e as usize), WfLimit::Hi),
+    ].iter().max().unwrap().map(|x| x+1 );
 
-    let hi: i32 = *vec![
-        hi_or_min(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_x))),
-        hi_or_min(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_o_e))),
-        hi_or_min(wavefronts.get_i_wavefront(utils::to_usize_or_zero(s_e))),
-        hi_or_min(wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e))),
-    ].iter().max().unwrap() as i32 + 1;
+    let lo: Option<i32> = vec![
+        foo(wavefronts.get_m_wavefront(s_x as usize), WfLimit::Lo),
+        foo(wavefronts.get_m_wavefront(s_o_e as usize), WfLimit::Lo),
+        foo(wavefronts.get_i_wavefront(s_e as usize), WfLimit::Lo),
+        foo(wavefronts.get_d_wavefront(s_e as usize), WfLimit::Lo),
+    ].iter().filter(|x| x.is_some()).min().unwrap().map(|x| x-1);
 
-    let lo: i32 = *vec![
-        lo_or_max(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_x))),
-        lo_or_max(wavefronts.get_m_wavefront(utils::to_usize_or_zero(s_o_e))),
-        lo_or_max(wavefronts.get_i_wavefront(utils::to_usize_or_zero(s_e))),
-        lo_or_max(wavefronts.get_d_wavefront(utils::to_usize_or_zero(s_e))),
-    ].iter().min().unwrap() - 1;
-
-    // TODO: return Option<lo> and Option<hi>
     (hi, lo)
 }
 
@@ -309,7 +309,7 @@ pub fn wf_next(
         eprintln!("\t[wflambda::wf_next]");
     }
 
-    if config.verbosity > 5 {
+    if config.verbosity > 4 {
         eprintln!("\t\tscore {}", score);
     }
 
@@ -332,7 +332,7 @@ pub fn wf_next(
         (signed_s_e < 0 || wavefronts.get_i_wavefront(unsigned_s_e).is_none()) &&
         (signed_s_e < 0 ||  wavefronts.get_d_wavefront(unsigned_s_e).is_none())
     {
-        if config.verbosity > 5 {
+        if config.verbosity > 4 {
             eprintln!("\t\tskipping score {}", score);
         }
             return;
@@ -347,7 +347,16 @@ pub fn wf_next(
 
     // compute the highest/rightmost and lowest/leftmost diagonal for a
     // wavefront with the given score will reach
-    let (hi, lo) = compute_wf_next_limits(&wavefronts, score as isize, config);
+    let (hi, lo): (Option<i32>, Option<i32>) = compute_wf_next_limits(&wavefronts, score, config);
+
+    if hi.is_none() || lo.is_none() {
+        if config.verbosity > 4 {
+            eprintln!("\t\tskipping hi {:?} lo {:?}", lo, hi);
+        }
+        return;
+    }
+
+    let (hi, lo) = (hi.unwrap(), lo.unwrap());
 
     // Vec::<types::WfType>::new();
     let wavefronts_to_allocate = vec![types::WfType::I, types::WfType::D, types::WfType::M];
@@ -545,6 +554,7 @@ where
         // Check whether we have reached the final point
         // Get the m-wavefront with the current score
         if utils::end_reached(all_wavefronts.get_m_wavefront(score), a_k, a_offset) {
+            /*
             if config.verbosity > 1 {
                 let m_s: &types::WaveFront = all_wavefronts.get_m_wavefront(score).unwrap();
                 let i_s: &types::WaveFront = all_wavefronts.get_m_wavefront(score).unwrap();
@@ -565,6 +575,7 @@ where
 
                 eprintln!("\n--------------------------------------\n");
             }
+             */
             break
         }
 
@@ -577,7 +588,7 @@ where
     // let cigar = String::new();
     let cigar = wf_traceback(&all_wavefronts, score, config);
 
-    let each_wf = vec![ types::WfType::M ];
+    let each_wf = vec![ types::WfType::I, types::WfType::D, types::WfType::M ];
     utils::debug_utils::visualize_all(&all_wavefronts, a_offset*2, &each_wf);
 
     (score, cigar)
@@ -589,7 +600,7 @@ mod tests {
     mod test_config {
         pub static CONFIG: crate::types::Config = crate::types::Config {
             adapt: false,
-            verbosity: 0,
+            verbosity: 1,
             penalties: crate::types:: Penalties {
                 mismatch: 4,
                 matches: 0,
@@ -695,10 +706,9 @@ mod tests {
                     v < tlen && h < qlen && t[v] == q[h]
                 };
 
-                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
-                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
-
+                let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
         }
     }
