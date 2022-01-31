@@ -7,12 +7,12 @@ respectively.
 
 ![DP matrix](./Figures/DP-Matrix.png)
 
-We cut across 3 DP tables (I, D and M, as in Smith, Waterman and Gotoh) using
-negative gradient diagonal lines as in (Myers ... and Marco 2020).
+It then cuts across 3 DP tables (I, D and M, as in Smith, Waterman and Gotoh)
+using negative gradient diagonal lines as in (Myers ... and Marco 2020).
 
 The central diagonal (`A_k`) is computed `A_k := tlen - qlen`.
-It is `0` and runs from the top left cell to the bottom right cell when
-`tlen === qlen`.
+When `tlen === qlen`, `A_k === 0` and runs from the top left cell to the bottom
+right cell.
 Diagonals below the central diagonal are negative diagonals and diagonals above
 it are positive diagonals.
 
@@ -53,6 +53,8 @@ A_k = (tlen-qlen) The central diagonal
    v   | 5 | A |   |   |   |   |   |   |
        |---|---|---|---|---|---|---|---|
 ```
+
+![M-WaveFront](./Figures/M-Wavefront-Example.png)
 
 
 ### Citation
