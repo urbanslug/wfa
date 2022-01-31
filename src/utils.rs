@@ -310,7 +310,7 @@ pub mod debug_utils {
                         // eprintln!("offset: {}\tk: {}\tscore: {}\t({}, {})", m_s_k,  k, score, v, h);
 
                         if v >= dim.0 || h >= dim.0 {
-                            // continue;
+                            continue;
                         }
 
 

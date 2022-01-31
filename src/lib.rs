@@ -384,18 +384,30 @@ pub fn wf_next(
     for k in lo..=hi {
 
         // eprintln!("\t\twavelength {}", wave_length);
+        let mut kernel: u8 = 0;
 
-        if k-1 < lo || k+1 > hi {
-            continue;
+        if k-1 < lo {
+            // don't set I
+            kernel = 1;
+            // eprintln!("skipping k {}", k);
+            // continue;
+        }
+        if  k+1 > hi {
+            kernel = 2;
         }
 
-        let k_index_sub_one: usize = utils::compute_k_index(wave_length, k-1, hi);
-        let k_index: usize = utils::compute_k_index(wave_length, k, hi);
-        let k_index_add_one: usize = utils::compute_k_index(wave_length, k+1, hi);
+        let compute_k_index = || -> usize {
+            wave_length - ((hi - k) as usize) - 1
+        };
+
+        eprintln!("skipping k {} kernel {}", k, kernel);
+
+        // let k_index_sub_one: usize = utils::compute_k_index(wave_length, k-1, hi);
+        // let k_index: usize = utils::compute_k_index(wave_length, k, hi);
+        // let k_index_add_one: usize = utils::compute_k_index(wave_length, k+1, hi);
 
         if  config.verbosity > 254 {
-            eprintln!("\t\t\tk: {}\tk-1 {}\tk-index {}\tk+1 {}",
-                      k, k_index_sub_one, k_index, k_index_add_one);
+            // eprintln!("\t\t\tk: {}\tk-1 {}\tk-index {}\tk+1 {}", k, k_index_sub_one, k_index, k_index_add_one);
         }
 
         let i_s_k: Option<i32> = vec![
@@ -431,47 +443,69 @@ pub fn wf_next(
         ].into_iter().max().unwrap();
 
         // offsets
-        if config.verbosity > 5 {
-            eprint!("\t\t{}\t{:?}\t{:?}\t{:?}", k, i_s_k, d_s_k, m_s_k);
+        if config.verbosity > 1 {
+            eprint!("\t\tk{}\tI{:?}\tD{:?}\tM{:?}", k, i_s_k, d_s_k, m_s_k);
             eprintln!();
         }
 
 
-        // set the values
+        // -----
+        // set the offsets of the I, D and M wavefronts
+        // -----
         let wf_set: &mut Option<types::WaveFrontSet> = &mut wavefronts.wavefront_set[score];
-        // eprintln!("\t\t 1 {:?}", wf_set);
-        // eprintln!();
         let wf_set: &mut types::WaveFrontSet = wf_set.as_mut().unwrap();
-        // eprintln!("\t\t 2 {:?}", wf_set);
 
-        match i_s_k {
-            Some(o) => {
-                match  wf_set.i.as_mut() {
-                    Some(i) => {i.offsets[k_index] = o}
-                    _ => {}
-                }
-            },
-            _ => { wf_set.i = None }
-        };
 
-        match d_s_k {
-            Some(o) => {
-                match  wf_set.d.as_mut() {
-                    Some(d) => {d.offsets[k_index] = o}
-                    _ => {}
-                }
-            },
+        if kernel != 1 {
+            match i_s_k {
+                Some(o) => {
+                    match  wf_set.i.as_mut() {
+                        Some(i) => {
+                            let k_index = compute_k_index();
+                            i.offsets[k_index] = o
+                        }
+                        _ => {}
+                    }
+                },
+                _ => { wf_set.i = None; }
+            };
+        }
 
-            _ => { wf_set.d = None }
-        };
+        if kernel != 2 {
+            match d_s_k {
+                Some(o) => {
+                    match  wf_set.d.as_mut() {
+                        Some(d) => {
+                            let k_index = compute_k_index();
+                            d.offsets[k_index] = o
+                        }
+                        _ => {}
+                    }
+                },
+
+                _ => { wf_set.d = None; }
+            };
+        }
+
         match m_s_k {
             Some(o) => {
                 match  wf_set.m.as_mut() {
-                    Some(m) => {m.offsets[k_index] = o}
+                    Some(m) => {
+                        let k_index = compute_k_index();
+                        m.offsets[k_index] = o
+                    }
                     _ => {}
                 }
             },
-            _ => { wf_set.m = None }
+            _ => {
+                match wf_set.m.as_mut() {
+                Some(m) => {
+                    let k_index = compute_k_index();
+                    m.offsets[k_index] = -10;
+                }
+                _ => {}
+            }
+            }
         };
     }
 
@@ -561,6 +595,23 @@ where
         // Check whether we have reached the final point
         // Get the m-wavefront with the current score
         if utils::end_reached(all_wavefronts.get_m_wavefront(score as i32), a_k, a_offset) {
+
+            eprintln!("k\tscore\toffset");
+            for i in (0..=score).rev() {
+                let m_wf = all_wavefronts.get_m_wavefront(i as i32);
+
+                match m_wf {
+                    Some (wf) => {
+                        for k in wf.lo..=wf.hi {
+                            let offset = wf.get_offset(k);
+                            eprintln!("{}\t{}\t{:?}", k, i, offset);
+                        }
+                    }
+                    _ => {}
+                };
+                eprintln!();
+            }
+
             /*
             if config.verbosity > 1 {
                 let m_s: &types::WaveFront = all_wavefronts.get_m_wavefront(score).unwrap();
@@ -592,7 +643,7 @@ where
         wf_next(&mut all_wavefronts, score, config);
     }
 
-    // let cigar = String::new();
+    //let cigar = String::new();
     let cigar = wf_traceback(&all_wavefronts, score, config);
 
     let each_wf = vec![ types::WfType::M ];
