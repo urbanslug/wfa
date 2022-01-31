@@ -1,6 +1,8 @@
 use num;
 use ndarray::{Array2, Array};
 use ndarray_to_img;
+use std::fs;
+use std::path;
 
 use crate::types;
 
@@ -346,7 +348,15 @@ pub mod debug_utils {
         };
 
         let scaled_matrix = ndarray_to_img::scale_matrix(&matrix, &config);
-        let image_name = "all.png";
-        ndarray_to_img::generate_image(&scaled_matrix, &config, &image_name).unwrap();
+
+        let out_dir = path::Path::new("./debug/out/");
+        // assume this will never fail
+        if !out_dir.exists() {
+            fs::create_dir_all(out_dir).unwrap();
+        }
+
+        let image_path_buf: path::PathBuf = out_dir.join("all.png");
+        let image_name: &str = image_path_buf.to_str().unwrap();
+        ndarray_to_img::generate_image(&scaled_matrix, &config, image_name).unwrap();
     }
 }
