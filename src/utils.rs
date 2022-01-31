@@ -175,7 +175,7 @@ pub mod backtrace_utils {
 
         // if m_wf.lo <= k + 1 && k + 1 <= m_wf.hi {
         all_wavefronts
-            .get_d_wavefront(score as usize)
+            .get_d_wavefront(score)
             .and_then(|d_wf| d_wf.get_offset(k+1))
             .cloned()
     }
@@ -191,7 +191,7 @@ pub mod backtrace_utils {
 
         // is d_wf.lo <= k + 1 && k + 1 <= d_wf.hi
         all_wavefronts
-            .get_d_wavefront(score as usize)
+            .get_d_wavefront(score)
             .and_then(|d_wf| d_wf.get_offset(k+1))
             .cloned()
     }
@@ -206,7 +206,7 @@ pub mod backtrace_utils {
         }
 
         all_wavefronts
-            .get_i_wavefront(score as usize)
+            .get_i_wavefront(score)
             .and_then(|i_wf| i_wf.get_offset(k-1))
             .cloned()
             .map(|x| x + 1)
@@ -223,7 +223,7 @@ pub mod backtrace_utils {
 
         // if i_wf.lo <= k - 1 && k - 1 <= i_wf.hi {
         all_wavefronts
-            .get_i_wavefront(score as usize)
+            .get_i_wavefront(score)
             .and_then(|i_wf| i_wf.get_offset(k-1))
             .cloned()
             .map(|x| x + 1)
@@ -239,7 +239,7 @@ pub mod backtrace_utils {
         }
 
         all_wavefronts
-            .get_m_wavefront(score as usize)
+            .get_m_wavefront(score)
             .and_then(|m_wf| m_wf.get_offset(k))
             .cloned()
             .map(|x| x + 1)

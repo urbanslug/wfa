@@ -139,7 +139,12 @@ impl WaveFronts {
             .and_then(|maybe_wf_set| maybe_wf_set.as_ref())
     }
 
-    pub fn get_m_wavefront(&self, score: usize) -> Option<&WaveFront> {
+    pub fn get_m_wavefront(&self, score: i32) -> Option<&WaveFront> {
+        if score < 0 {
+            return None;
+        }
+
+        let score = score as usize;
         let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
         match maybe_wf_set {
             Some(v) => v.m.as_ref(),
@@ -147,7 +152,12 @@ impl WaveFronts {
         }
     }
 
-    pub fn get_i_wavefront(&self, score: usize) -> Option<&WaveFront> {
+    pub fn get_i_wavefront(&self, score: i32) -> Option<&WaveFront> {
+        if score < 0 {
+            return None;
+        }
+
+        let score = score as usize;
         let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
         match maybe_wf_set {
             Some(v) => v.i.as_ref(),
@@ -155,7 +165,12 @@ impl WaveFronts {
         }
     }
 
-    pub fn get_d_wavefront(&self, score: usize) -> Option<&WaveFront> {
+    pub fn get_d_wavefront(&self, score: i32) -> Option<&WaveFront> {
+        if score < 0 {
+            return None;
+        }
+
+        let score = score as usize;
         let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
         match maybe_wf_set {
             Some(v) => v.d.as_ref(),
