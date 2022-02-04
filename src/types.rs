@@ -44,7 +44,7 @@ pub enum BacktraceOperation {
 
 /// The a single wavefront with a score
 /// The furthest reaching point of a single wavefront
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WaveFront {
     /// the highest diagonal touched by the wavefront
     pub hi: i32,
@@ -96,7 +96,7 @@ impl WaveFront {
 }
 
 /// The set of wavefronts at a certain score
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct WaveFrontSet {
     /// insertion wavefront
     pub i: Option<WaveFront>,
@@ -110,6 +110,7 @@ pub struct WaveFrontSet {
 }
 
 /// All the wavefronts
+#[derive(Clone)]
 pub struct WaveFronts {
     /// The set of wavefronts with each score, the index represents the score
     /// and, each element is a wavefront.
@@ -202,6 +203,7 @@ impl WaveFronts {
     {
         // should only add what is necessary
         let max_score = self.max_score();
+        let len = num::abs_sub(hi, lo) as usize + 1;
 
         if max_score >= score {
             // we are trying to add a score that exists
@@ -240,7 +242,6 @@ impl WaveFronts {
                 self.wavefront_set.push(None);
             }
         }
-
         Ok(())
     }
 }
