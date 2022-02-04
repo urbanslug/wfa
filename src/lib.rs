@@ -375,6 +375,57 @@ fn alloc_wf(awf_set: &AWFSet) -> Vec<types::WfType> {
     wavefronts_to_allocate
 }
 
+fn foobar<'a>(
+    wavefronts: &'a mut types::WaveFronts,
+    awf_set: &AWFSet,
+    lo: i32,
+    hi: i32,
+    score: usize,
+) -> Vec<types::WfType> {
+
+
+    let mut wavefronts_to_allocate = vec![types::WfType::M];
+
+    let maybe_out_m_wf = Some(types::WaveFront::new(hi, lo));
+    let mut maybe_out_i_wf = None;
+    let mut maybe_out_d_wf = None;
+
+
+    // Allocate I-Wavefront
+    if awf_set.in_m_gap.is_some() || awf_set.in_i_ext.is_some(){
+        maybe_out_i_wf = Some(types::WaveFront::new(hi, lo));
+        wavefronts_to_allocate.push(types::WfType::I);
+    }
+
+    // Allocate D-Wavefront
+    if awf_set.in_m_gap.is_some() || awf_set.in_d_ext.is_some(){
+        maybe_out_d_wf = Some(types::WaveFront::new(hi, lo));
+        wavefronts_to_allocate.push(types::WfType::D);
+    }
+
+    let prev_score = wavefronts.wavefront_set.len();
+
+
+
+    for s in prev_score..=score {
+        if s == score {
+            let wf = types::WaveFrontSet{
+                i: maybe_out_i_wf.clone(),
+                m: maybe_out_m_wf.clone(),
+                d: maybe_out_d_wf.clone(),
+            };
+
+            wavefronts.wavefront_set.push(Some(wf));
+        } else {
+            wavefronts.wavefront_set.push(None);
+        }
+    }
+
+    // awf_set.out_m = wavefronts.get_m_wavefront(score as i32);
+
+    wavefronts_to_allocate
+}
+
 pub fn wf_next(
     wavefronts: &mut types::WaveFronts,
     score: usize,
@@ -403,7 +454,7 @@ pub fn wf_next(
 
 
     let cloned_wf = wavefronts.clone();
-    let awf_set = fetch_wf(score, &cloned_wf, config);
+    let mut awf_set = fetch_wf(score, &cloned_wf, config);
 
     if awf_set.in_m_sub.is_none() &&
         awf_set.in_m_gap.is_none() &&
@@ -443,7 +494,8 @@ pub fn wf_next(
     // Allocate the next wave front
     let wavefronts_to_allocate = alloc_wf(&awf_set);
     // alloc_wf(&wavefronts, &awf_set, score, lo, hi);
-    let allocation_result = wavefronts.allocate_wavefronts(score as u32, lo, hi, &wavefronts_to_allocate);
+    // let allocation_result = wavefronts.allocate_wavefronts(score as u32, lo, hi, &wavefronts_to_allocate);
+    /*
     match allocation_result {
         Ok(_) => {
             if config.verbosity > 254 {
@@ -452,12 +504,12 @@ pub fn wf_next(
         },
         Err(msg) => { panic!("{}", msg) }
     };
+    */
 
-    /*
+    let wavefronts_to_allocate = foobar(wavefronts, &awf_set, lo, hi, score);
+    // awf_set.out_m = wavefronts.get_m_wavefront(score as i32);
     // awf_set.out_i = wavefronts.get_i_wavefront(score as i32);
     // awf_set.out_d = wavefronts.get_d_wavefront(score as i32);
-    // awf_set.out_m = wavefronts.get_m_wavefront(score as i32);
-     */
 
     // let wave_length: usize = utils::compute_wave_length(lo, hi);
 
@@ -474,28 +526,32 @@ pub fn wf_next(
         Some(wavefront_length - ((hi - k) as usize) - 1)
     };
 
+    let affine_wavefront_cond_fetch = |wf: &types::WaveFront, k: i32| -> Option<i32> {
+        let maybe_in_k_index = compute_maybe_k_index(wf.len(), wf.hi, k);
+        match maybe_in_k_index {
+            Some(k_index) => { Some(wf.offsets[k_index]) },
+            _ => { None }
+        }
+
+    };
+
     let assign_offsets_m = |wavefronts: &mut types::WaveFronts| {
         let wf_set: &mut Option<types::WaveFrontSet> = &mut wavefronts.wavefront_set[score];
         let wf_set: &mut types::WaveFrontSet = wf_set.as_mut().unwrap();
-        let m_wf: &mut types::WaveFront = &mut wf_set.m.as_mut().unwrap();
+        let out_m_wf: &mut types::WaveFront = &mut wf_set.m.as_mut().unwrap();
+        let wavefront_len = out_m_wf.len();
 
         let in_m_wf: &types::WaveFront = awf_set.in_m_sub.unwrap();
 
         for k in lo..=hi {
+            // eprintln!("\t\tk: {} len {} hi {}" , k, wavefront_len, out_m_wf.hi);
+            let k_index = compute_k_index(wavefront_len, out_m_wf.hi, k);
 
-            let k_index = compute_k_index(m_wf.len(), m_wf.hi, k);
-            let maybe_in_k_index = compute_maybe_k_index(in_m_wf.len(), in_m_wf.hi, k);
-            match maybe_in_k_index {
-                Some(in_k_index) => {
-                    m_wf.offsets[k_index] = in_m_wf.offsets[in_k_index] + 1;
-                },
-                None =>  {
-                    m_wf.offsets[k_index] = -10;
-                }
-            };
+            match affine_wavefront_cond_fetch(in_m_wf,k) {
+                Some(offset) => {out_m_wf.offsets[k_index] = offset + 1;},
+                _ => { out_m_wf.offsets[k_index] = -10 }
+            }
 
-            eprintln!("{} {}", k, m_wf.offsets[k_index]);
-            eprintln!();
         }
     };
 
@@ -512,38 +568,30 @@ pub fn wf_next(
 
         for k in lo..=hi {
             // Update I
-            let out_k_index: usize = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let maybe_in_k_index_gap: Option<usize> = compute_maybe_k_index(in_m_gap_wf.len(), in_m_gap_wf.hi, k-1);
-            let maybe_in_k_index_ext: Option<usize> = compute_maybe_k_index(in_i_ext_wf.len(), in_i_ext_wf.hi, k-1);
-            let x: Option<i32> = match maybe_in_k_index_gap {
-                Some(in_k_index_gap) => Some(in_m_gap_wf.offsets[in_k_index_gap]),
-                None => None,
-            };
+            // comapre gap open on M and gap extend on I
+            let k_index: usize = compute_k_index(out_i_wf.len(), out_i_wf.hi, k);
 
-            let y: Option<i32> = match maybe_in_k_index_ext {
-                Some(in_k_index_ext) => Some(in_i_ext_wf.offsets[in_k_index_ext]),
-                None => None,
-            };
-
+            let x: Option<i32> = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
+            let y: Option<i32> = affine_wavefront_cond_fetch(in_i_ext_wf, k-1);
             let maybe_ins: Option<i32> = *vec![x, y].iter().max().unwrap();
-            match maybe_ins {
-                Some(v) => out_i_wf.offsets[out_k_index] = v+1,
-                _ => out_i_wf.offsets[out_k_index] = -10,
-            }
+            let ins = match maybe_ins {
+                Some(v) => v+1,
+                None => -10,
+            };
 
+            out_i_wf.offsets[k_index] = ins;
 
             // Update M
-            let out_k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let maybe_in_k_index = compute_maybe_k_index(in_m_sub_wf.len(), in_m_sub_wf.hi, k);
+            let k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
+            let maybe_sub: Option<i32> = affine_wavefront_cond_fetch(in_m_sub_wf, k);
+            let maybe_sub: Option<i32> = *vec![maybe_sub, Some(ins)].iter().max().unwrap();
 
-            match maybe_in_k_index {
-                Some(in_k_index) => {
-                    out_m_wf.offsets[out_k_index] = in_m_sub_wf.offsets[in_k_index] + 1;
-                },
-                None =>  {
-                    out_m_wf.offsets[out_k_index] = -10;
-                }
+            let sub = match maybe_sub {
+                Some(v) => v,
+                None => -10,
             };
+
+            out_m_wf.offsets[k_index] = sub;
         }
     };
 
@@ -560,38 +608,30 @@ pub fn wf_next(
 
         for k in lo..=hi {
             // Update D
-            let out_k_index: usize = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let maybe_in_k_index_gap: Option<usize> = compute_maybe_k_index(in_m_gap_wf.len(), in_m_gap_wf.hi, k-1);
-            let maybe_in_k_index_ext: Option<usize> = compute_maybe_k_index(in_d_ext_wf.len(), in_d_ext_wf.hi, k-1);
-            let x: Option<i32> = match maybe_in_k_index_gap {
-                Some(in_k_index_gap) => Some(in_m_gap_wf.offsets[in_k_index_gap]),
-                None => None,
+            // comapre gap open on M and gap extend on I
+            let k_index: usize = compute_k_index(out_d_wf.len(), out_d_wf.hi, k);
+
+            let x: Option<i32> = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
+            let y: Option<i32> = affine_wavefront_cond_fetch(in_d_ext_wf, k-1);
+            let maybe_del: Option<i32> = *vec![x, y].iter().max().unwrap();
+            let del = match maybe_del {
+                Some(v) => v,
+                None => -10,
             };
 
-            let y: Option<i32> = match maybe_in_k_index_ext {
-                Some(in_k_index_ext) => Some(in_d_ext_wf.offsets[in_k_index_ext]),
-                None => None,
-            };
-
-            let maybe_ins: Option<i32> = *vec![x, y].iter().max().unwrap();
-            match maybe_ins {
-                Some(v) => out_d_wf.offsets[out_k_index] = v+1,
-                _ => out_d_wf.offsets[out_k_index] = -10,
-            }
-
+            out_d_wf.offsets[k_index] = del;
 
             // Update M
-            let out_k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let maybe_in_k_index = compute_maybe_k_index(in_m_sub_wf.len(), in_m_sub_wf.hi, k);
+            let k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
+            let maybe_sub: Option<i32> = affine_wavefront_cond_fetch(in_m_sub_wf, k);
+            let maybe_sub: Option<i32> = *vec![maybe_sub, Some(del)].iter().max().unwrap();
 
-            match maybe_in_k_index {
-                Some(in_k_index) => {
-                    out_m_wf.offsets[out_k_index] = in_m_sub_wf.offsets[in_k_index] + 1;
-                },
-                None =>  {
-                    out_m_wf.offsets[out_k_index] = -10;
-                }
+            let sub = match maybe_sub {
+                Some(v) => v,
+                None => -10,
             };
+
+            out_m_wf.offsets[k_index] = sub;
         }
     };
 
@@ -603,93 +643,113 @@ pub fn wf_next(
         let out_d_wf: &mut types::WaveFront = &mut wf_set.d.as_mut().unwrap();
         let out_i_wf: &mut types::WaveFront = &mut wf_set.i.as_mut().unwrap();
 
-        eprintln!("awf_set: {:?}", awf_set);
-        // let in_m_sub_wf: &types::WaveFront = awf_set.in_m_sub.unwrap();
-        // let in_m_sub_wf: &types::WaveFront = awf_set.in_m_sub.unwrap();
+        eprintln!("{:?}", awf_set);
+
         let maybe_in_m_sub_wf: Option<&types::WaveFront> = awf_set.in_m_sub;
         let maybe_in_m_gap_wf: Option<&types::WaveFront> = awf_set.in_m_gap;
         let maybe_in_d_ext_wf: Option<&types::WaveFront> = awf_set.in_d_ext;
         let maybe_in_i_ext_wf: Option<&types::WaveFront> = awf_set.in_i_ext;
 
+        // compute min_hi
+        let min_hi: Option<i32> = vec![maybe_in_d_ext_wf, maybe_in_i_ext_wf, maybe_in_m_gap_wf, maybe_in_m_sub_wf]
+            .into_iter()
+            .filter(|x| x.is_some())
+            .map(|maybe_wf| maybe_wf.map(|wf| wf.hi))
+            .min()
+            .unwrap();
+        let min_hi = min_hi.unwrap();
+
+        let max_lo: Option<i32> = vec![maybe_in_d_ext_wf, maybe_in_i_ext_wf, maybe_in_m_gap_wf, maybe_in_m_sub_wf]
+            .into_iter()
+            .filter(|x| x.is_some())
+            .map(|maybe_wf| maybe_wf.map(|wf| wf.lo))
+            .max()
+            .unwrap();
+
+        let max_lo = max_lo.unwrap();
+
         for k in lo..=hi {
-            let out_k_index: usize = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-
             // Update I
-
-            if maybe_in_i_ext_wf.is_some() && maybe_in_m_gap_wf.is_some() {
-                let in_i_ext_wf: &types::WaveFront = maybe_in_i_ext_wf.unwrap();
-                let in_m_gap_wf: &types::WaveFront = maybe_in_m_gap_wf.unwrap();
-
-                let maybe_in_k_index_gap: Option<usize> = compute_maybe_k_index(in_m_gap_wf.len(), in_m_gap_wf.hi, k-1);
-                let maybe_in_k_index_ext: Option<usize> = compute_maybe_k_index(in_i_ext_wf.len(), in_i_ext_wf.hi, k-1);
-                let x: Option<i32> = match maybe_in_k_index_gap {
-                    Some(in_k_index_gap) => Some(in_m_gap_wf.offsets[in_k_index_gap]),
-                    None => None,
-                };
-
-                let y: Option<i32> = match maybe_in_k_index_ext {
-                    Some(in_k_index_ext) => Some(in_i_ext_wf.offsets[in_k_index_ext]),
-                    None => None,
-                };
-
-                let maybe_ins: Option<i32> = *vec![x, y].iter().max().unwrap();
-                match maybe_ins {
-                    Some(v) => out_i_wf.offsets[out_k_index] = v+1,
-                    _ => out_i_wf.offsets[out_k_index] = -10,
-                }
-            } else {
-                out_i_wf.offsets[out_k_index] = -10;
-            }
-
+            let k_index: usize = compute_k_index(out_i_wf.len(), out_i_wf.hi, k);
+            let ins_m = maybe_in_m_gap_wf.and_then(|m_gap| affine_wavefront_cond_fetch(m_gap, k-1));
+            let ins_i = maybe_in_i_ext_wf.and_then(|i_ext| affine_wavefront_cond_fetch(i_ext, k-1));
+            let maybe_ins: Option<i32> = vec![ins_m, ins_i].into_iter().max().unwrap().map(|i| i+1);
+            let ins = match maybe_ins {
+                Some(v) => v,
+                None => -10,
+            };
+            out_i_wf.offsets[k_index] = ins;
 
             // Update D
-            if maybe_in_d_ext_wf.is_some() && maybe_in_m_gap_wf.is_some() {
-                let in_d_ext_wf = maybe_in_d_ext_wf.unwrap();
-                let in_m_gap_wf: &types::WaveFront = maybe_in_m_gap_wf.unwrap();
-
-                let maybe_in_k_index_gap: Option<usize> = compute_maybe_k_index(in_m_gap_wf.len(), in_m_gap_wf.hi, k-1);
-                let maybe_in_k_index_ext: Option<usize> = compute_maybe_k_index(in_d_ext_wf.len(), in_d_ext_wf.hi, k-1);
-                let x: Option<i32> = match maybe_in_k_index_gap {
-                    Some(in_k_index_gap) => Some(in_m_gap_wf.offsets[in_k_index_gap]),
-                    None => None,
-                };
-
-                let y: Option<i32> = match maybe_in_k_index_ext {
-                    Some(in_k_index_ext) => Some(in_d_ext_wf.offsets[in_k_index_ext]),
-                    None => None,
-                };
-
-                let maybe_ins: Option<i32> = *vec![x, y].iter().max().unwrap();
-                match maybe_ins {
-                    Some(v) => out_d_wf.offsets[out_k_index] = v+1,
-                    _ => out_d_wf.offsets[out_k_index] = -10,
-                };
-
-            } else {
-                out_d_wf.offsets[out_k_index] = -10;
-            }
-
+            let k_index: usize = compute_k_index(out_d_wf.len(), out_d_wf.hi, k);
+            let del_m = maybe_in_m_gap_wf.and_then(|m_gap| affine_wavefront_cond_fetch(m_gap, k+1));
+            let del_i = maybe_in_d_ext_wf.and_then(|d_ext| affine_wavefront_cond_fetch(d_ext, k+1));
+            let maybe_del: Option<i32> = vec![del_m, del_i].into_iter().max().unwrap();
+            let del = match maybe_del {
+                Some(v) => v,
+                None => -10,
+            };
+            out_d_wf.offsets[k_index] = del;
 
             // Update M
-            if maybe_in_m_sub_wf.is_some() {
-                let in_m_sub_wf = maybe_in_m_sub_wf.unwrap();
-                let out_k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-                let maybe_in_k_index = compute_maybe_k_index(in_m_sub_wf.len(), in_m_sub_wf.hi, k);
-
-                match maybe_in_k_index {
-                    Some(in_k_index) => {
-                        out_m_wf.offsets[out_k_index] = in_m_sub_wf.offsets[in_k_index] + 1;
-                    },
-                    None =>  {
-                        out_m_wf.offsets[out_k_index] = -10;
-                    }
-                };
-            } else {
-                out_m_wf.offsets[out_k_index] = -10;
-            }
+            let k_index: usize = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
+            let sub_m: Option<i32> = maybe_in_m_sub_wf.and_then(|m_sub| affine_wavefront_cond_fetch(m_sub, k)).map(|x| x+1);
+            let maybe_sub: Option<i32> = *vec![sub_m, Some(ins), Some(del)].iter().max().unwrap();
+            let sub = match maybe_sub {
+                Some(v) => v,
+                None => -10,
+            };
+            out_m_wf.offsets[k_index] = sub;
 
         }
+        /*
+        for k in max_lo..=min_hi {
+
+            // Update I
+            // comapre gap open on M and gap extend on I
+            let k_index: usize = compute_k_index(out_i_wf.len(), out_i_wf.hi, k);
+
+            let x: Option<i32> = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
+            let y: Option<i32> = affine_wavefront_cond_fetch(in_i_ext_wf, k-1);
+            let maybe_ins: Option<i32> = *vec![x, y].iter().max().unwrap();
+            let ins = match maybe_ins {
+                Some(v) => v+1,
+                None => -10,
+            };
+
+            out_i_wf.offsets[k_index] = ins;
+
+            // Update D
+            // comapre gap open on M and gap extend on I
+            let k_index: usize = compute_k_index(out_d_wf.len(), out_d_wf.hi, k);
+
+            let x: Option<i32> = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
+            let y: Option<i32> = affine_wavefront_cond_fetch(in_d_ext_wf, k-1);
+            let maybe_del: Option<i32> = *vec![x, y].iter().max().unwrap();
+            let del = match maybe_del {
+                Some(v) => v,
+                None => -10,
+            };
+
+            out_d_wf.offsets[k_index] = del;
+
+            // Update M
+            let k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
+            let maybe_sub: Option<i32> = affine_wavefront_cond_fetch(in_m_sub_wf, k);
+            let maybe_sub: Option<i32> = *vec![maybe_sub, Some(del), Some(ins)].iter().max().unwrap();
+
+            let sub = match maybe_sub {
+                Some(v) => v,
+                None => -10,
+            };
+
+            out_m_wf.offsets[k_index] = sub;
+        }
+        for k in min_hi..hi {}
+        */
+
     };
+
 
     match wavefronts_to_allocate[..] {
         [types::WfType::M ] => { eprintln!("\t\tkernel: 0"); assign_offsets_m(wavefronts); },
