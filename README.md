@@ -2,7 +2,7 @@
 
 Wavefront expansion global alignment algorithm.
 
-![WaveFront-Expansion-Schematic](./Figures//wavefront-expansion.png)
+![WaveFront-Expansion-Schematic](./Figures/wavefronts-expansion-schematic.png)
 
 Takes two parameters `text` and `pattern` of length `tlen` and `qlen` respectively.
 
