@@ -36,12 +36,13 @@ pub fn abs_sub(lhs: i32, rhs: i32) -> i32 {
     num::abs(result)
 }
 
-pub fn compute_v(offset: i32, k: i32) -> usize {
-    abs_sub(offset, k as i32) as usize
+
+pub fn compute_v(offset: i32, k: i32) -> i32 {
+    offset - k
 }
 
-pub fn compute_h(offset: i32, _: i32) -> usize {
-    offset as usize
+pub fn compute_h(offset: i32, _: i32) -> i32 {
+    offset
 }
 
 pub fn end_reached(
@@ -80,9 +81,15 @@ pub mod backtrace_utils {
 
         for c in cigar.as_bytes() {
             match c {
-                b'M' | b'X' => {
+                b'M'=> {
                     query.push_str( &foo(q_iter.next()) );
                     marker.push_str(vertical_bar);
+                    text.push_str( &foo(t_iter.next()) );
+                },
+
+                b'X' => {
+                    query.push_str( &foo(q_iter.next()) );
+                    marker.push_str(space);
                     text.push_str( &foo(t_iter.next()) );
                 },
 
@@ -177,7 +184,7 @@ pub mod backtrace_utils {
 
         // if m_wf.lo <= k + 1 && k + 1 <= m_wf.hi {
         all_wavefronts
-            .get_d_wavefront(score)
+            .get_m_wavefront(score)
             .and_then(|d_wf| d_wf.get_offset(k+1))
             .cloned()
     }
@@ -208,7 +215,7 @@ pub mod backtrace_utils {
         }
 
         all_wavefronts
-            .get_i_wavefront(score)
+            .get_m_wavefront(score)
             .and_then(|i_wf| i_wf.get_offset(k-1))
             .cloned()
             .map(|x| x + 1)
@@ -251,12 +258,14 @@ pub mod backtrace_utils {
 pub mod debug_utils {
     use super::*;
 
+
     pub fn visualize_all(
         all_wavefronts: &types::WaveFronts,
         a_offset: u32,
         each_wf: &Vec<types::WfType>,
-        match_positions: &Vec<(usize, usize, usize)>,
-        config: &types::Config
+        match_positions: &Vec<(i32, i32, usize)>,
+        config: &types::Config,
+        score: usize
     ) {
         if config.verbosity > 1 {
             eprintln!("[utils::visualize_all]");
@@ -266,65 +275,68 @@ pub mod debug_utils {
             eprintln!("\tPopulating matrix");
         }
 
+
         let dim = (a_offset as usize+1, a_offset as usize+1);
         let x = ndarray::Dim(dim);
         let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
 
-        // Loop through all the wavefront sets
-        for wf_set in all_wavefronts.wavefront_set.iter() {
-
-            let wf_set = match wf_set {
-                Some(w) => w,
-                None => { continue; },
+        eprintln!("\t\tk\tscore\toffset\t(v,h)");
+        for s in (0..=score).rev() {
+            let wf_specific: &types::WaveFront = match all_wavefronts.get_m_wavefront(s as i32) {
+                Some(m) => m,
+                _ => continue,
             };
 
-            // if there's something in here
-            for wf in each_wf {
-                let wf_specific = match wf {
-                    types::WfType::I => { match &wf_set.i {
-                        Some(w) => w,
-                        _ => { continue; }
-                    }},
-                    types::WfType::D => { match &wf_set.d {
-                        Some(w) => w,
-                        _ => { continue; }
-                    }},
-                    types::WfType::M => { match &wf_set.m {
-                        Some(w) => w,
-                        _ => { continue; }
-                    }},
-                };
+            let lo = wf_specific.lo;
+            let hi = wf_specific.hi;
+            let offsets = &wf_specific.offsets;
+            let len = offsets.len();
 
-                let lo = wf_specific.lo;
-                let hi = wf_specific.hi;
-                let offsets = &wf_specific.offsets;
-                let len = offsets.len();
+            // eprintln!("\t\tscore: {} lo {} hi {}", s, lo, hi);
 
-                for k in lo..=hi {
+            for k in lo..=hi {
+                let k_index: usize = compute_k_index(len, k, hi);
+                let m_s_k: i32 = offsets[k_index];
 
-                    let k_index: usize = compute_k_index(len, k, hi);
-                    let m_s_k: i32 = offsets[k_index];
+                for offset in  m_s_k..=m_s_k {
+                    let v = compute_v(offset, k);
+                    let h = compute_h(offset, k);
 
-                    for offset in  m_s_k..=m_s_k {
-                        let v: usize = compute_v(offset, k);
-                        let h: usize = compute_h(offset, k);
+                    // eprintln!("offset: {}\tk: {}\tscore: {}\t({}, {})", m_s_k,  k, score, v, h);
 
-                        // eprintln!("offset: {}\tk: {}\tscore: {}\t({}, {})", m_s_k,  k, score, v, h);
-
-                        if v >= dim.0 || h >= dim.0 {
-                            continue;
-                        }
+                    eprintln!("\t\t{}\t{}\t{}\t({},{})", k, s, offset, v, h);
 
 
-                        matrix[[v,h]] = Some(offset);
+                    if v < 0 || h < 0 || v >= dim.0 as i32 || h >= dim.0 as i32 {
+                        continue;
                     }
+
+                    let v = v as usize;
+                    let h = h as usize;
+
+                    if config.verbosity > 5 {
+                        // eprintln!("\t\t({},{})\t{}\t{}", v, h, s, offset);
+                    }
+
+
+                    matrix[[v,h]] = Some(offset);
                 }
             }
+
+            eprintln!();
         }
 
         for (v, h, score) in match_positions {
             let v = *v;
             let h = *h;
+
+            if v < 0 || h < 0 || v >= dim.0 as i32 || h >= dim.0 as i32 {
+                continue;
+            }
+
+            let v = v as usize;
+            let h = h as usize;
+
             if v == h {
                 matrix[[v, h]] = Some(*score as i32);
             }
