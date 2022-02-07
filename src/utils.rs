@@ -80,9 +80,15 @@ pub mod backtrace_utils {
 
         for c in cigar.as_bytes() {
             match c {
-                b'M' | b'X' => {
+                b'M'=> {
                     query.push_str( &foo(q_iter.next()) );
                     marker.push_str(vertical_bar);
+                    text.push_str( &foo(t_iter.next()) );
+                },
+
+                b'X' => {
+                    query.push_str( &foo(q_iter.next()) );
+                    marker.push_str(space);
                     text.push_str( &foo(t_iter.next()) );
                 },
 
@@ -177,7 +183,7 @@ pub mod backtrace_utils {
 
         // if m_wf.lo <= k + 1 && k + 1 <= m_wf.hi {
         all_wavefronts
-            .get_d_wavefront(score)
+            .get_m_wavefront(score)
             .and_then(|d_wf| d_wf.get_offset(k+1))
             .cloned()
     }
@@ -208,7 +214,7 @@ pub mod backtrace_utils {
         }
 
         all_wavefronts
-            .get_i_wavefront(score)
+            .get_m_wavefront(score)
             .and_then(|i_wf| i_wf.get_offset(k-1))
             .cloned()
             .map(|x| x + 1)
