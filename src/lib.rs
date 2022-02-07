@@ -42,8 +42,8 @@ pub fn wf_traceback(
     // offset
     let m_s_k = m_wf.offsets[k_index];
 
-    let mut v: usize = utils::compute_v(m_s_k, k);
-    let mut h: usize = utils::compute_h(m_s_k, k);
+    let mut v = utils::compute_v(m_s_k, k);
+    let mut h = utils::compute_h(m_s_k, k);
 
     if config.verbosity >  5 {
         eprintln!("\t\t({}, {})", v, h);
@@ -52,7 +52,7 @@ pub fn wf_traceback(
     let mut backtrace_op = types::BacktraceOperation::MatchMismatch;
 
     let mut s = score as i32;
-    let mut offset = m_s_k as i32;
+    let mut offset = m_s_k;
 
     while v > 0 && h > 0 && s > 0 {
         // compute scores
@@ -60,7 +60,7 @@ pub fn wf_traceback(
         let gap_extend_score: i32 = s - e;
         let mismatch_score: i32 = s - x;
 
-        if config.verbosity >  5 {
+        if config.verbosity >  4 {
             eprintln!("\t\tscore: {} \n\
                        \t\tOperation: {:?} \n\
                        \t\t{{\n\
@@ -109,7 +109,7 @@ pub fn wf_traceback(
             .max()
             .unwrap();
 
-        if config.verbosity > 5 {
+        if config.verbosity > 4 {
             let res = vec![del_ext, del_open, ins_ext, ins_open, misms];
             eprintln!("\t\tdel_ext, del_open, ins_ext, ins_open, misms\n\
                        \t\tops {:?} \n\
@@ -174,8 +174,8 @@ pub fn wf_traceback(
             panic!("Backtrace error: No link found during backtrace");
         }
 
-        v = crate::utils::compute_v(offset as i32, k);
-        h = crate::utils::compute_h(offset as i32, k);
+        v = crate::utils::compute_v(offset, k);
+        h = crate::utils::compute_h(offset, k);
 
         if config.verbosity > 5 {
             eprintln!("\t\t({}, {}) s {}", v, h, s);
@@ -213,46 +213,49 @@ pub fn wf_extend<F>(
     m_wavefront: &mut types::WaveFront,
     match_lambda: &F,
     config: &types::Config,
-    match_positions: &mut Vec<(usize, usize, usize)>
+    match_positions: &mut Vec<(i32, i32, usize)>,
+    score: usize
+
 )
 where
-    F: Fn(usize, usize) -> bool,
+    F: Fn(i32, i32) -> bool,
 {
     if config.verbosity > 1 {
         eprintln!("\t[wflambda::wf_extend]");
     }
 
     // eprintln!("\t\tlo {} hi {}",  m_wavefront.lo, m_wavefront.hi);
+    eprintln!("\t\tscore {}", score);
 
     for k in m_wavefront.lo..=m_wavefront.hi {
 
-        let k_index: usize = utils::compute_k_index(m_wavefront.len(), k, m_wavefront.hi);
+        let k_index: usize = utils::compute_k_index(m_wavefront.len(),
+                                                    k,
+                                                    m_wavefront.hi);
 
         // assuming tlen > qlen
         let m_s_k: i32 = m_wavefront.offsets[k_index];
 
-        let mut v: usize = utils::compute_v(m_s_k, k);
-        let mut h: usize = utils::compute_h(m_s_k, k);
+        let mut v = utils::compute_v(m_s_k, k);
+        let mut h = utils::compute_h(m_s_k, k);
 
         // eprintln!("\t\t\tk {}\toffset {}\t({}, {})", k, m_s_k, v, h);
         // vt[v][h] = m_wavefront.vals[k_index] as i32;
 
         while match_lambda(v, h) {
-
-
-
             if config.verbosity > 254 {
+
                 eprintln!("\t[wflambda::wf_extend]\n\
                            \t\t({} {})",
                           v, h);
             }
-
             // increment our offset on the m_wavefront
             m_wavefront.offsets[k_index] += 1;
 
             let offset = m_wavefront.offsets[k_index];
             match_positions.push((v, h, offset as usize));
 
+            eprintln!("\t\tk {}\toffset {}", k, offset);
             v+=1;
             h+=1;
         }
@@ -489,7 +492,8 @@ pub fn wf_next(
 
     let (hi, lo) = (hi.unwrap(), lo.unwrap());
 
-    eprintln!("\t\tscore: {} lo {} hi {}", score, lo, hi);
+
+    // eprintln!("\t\tscore: {} lo {} hi {}", score, lo, hi);
 
     // Allocate the next wave front
     let wavefronts_to_allocate = alloc_wf(&awf_set);
@@ -518,21 +522,24 @@ pub fn wf_next(
     };
 
     let compute_maybe_k_index = |wavefront_length: usize, hi: i32, k: i32| -> Option<usize> {
-        let x = hi - k;
-        if x < 0 || wavefront_length < (x as usize) || wavefront_length - (x as usize) < 1 {
+        if hi < k {
+            return None
+        };
+
+        let candidate_index = wavefront_length as i32 - (hi - k) - 1;
+
+        if candidate_index < 0  {
             return None;
         }
 
-        Some(wavefront_length - ((hi - k) as usize) - 1)
+        Some(candidate_index as usize)
     };
 
-    let affine_wavefront_cond_fetch = |wf: &types::WaveFront, k: i32| -> Option<i32> {
-        let maybe_in_k_index = compute_maybe_k_index(wf.len(), wf.hi, k);
-        match maybe_in_k_index {
-            Some(k_index) => { Some(wf.offsets[k_index]) },
-            _ => { None }
-        }
-
+    let affine_wavefront_cond_fetch = |wf: &types::WaveFront, k: i32| -> i32 {
+        // eprintln!("{:?}", wf);
+        compute_maybe_k_index(wf.len(), wf.hi, k)
+            .map(|k_index: usize| wf.offsets[k_index])
+            .unwrap_or(-10)
     };
 
     let assign_offsets_m = |wavefronts: &mut types::WaveFronts| {
@@ -544,14 +551,11 @@ pub fn wf_next(
         let in_m_wf: &types::WaveFront = awf_set.in_m_sub.unwrap();
 
         for k in lo..=hi {
-            // eprintln!("\t\tk: {} len {} hi {}" , k, wavefront_len, out_m_wf.hi);
             let k_index = compute_k_index(wavefront_len, out_m_wf.hi, k);
-
-            match affine_wavefront_cond_fetch(in_m_wf,k) {
-                Some(offset) => {out_m_wf.offsets[k_index] = offset + 1;},
-                _ => { out_m_wf.offsets[k_index] = -10 }
-            }
-
+            let mut offset = affine_wavefront_cond_fetch(in_m_wf, k);
+            if offset != -10  { offset += 1 }
+            out_m_wf.offsets[k_index] = offset;
+            eprintln!("\t\tk {}\tM {}", k, offset);
         }
     };
 
@@ -571,25 +575,17 @@ pub fn wf_next(
             // comapre gap open on M and gap extend on I
             let k_index: usize = compute_k_index(out_i_wf.len(), out_i_wf.hi, k);
 
-            let x: Option<i32> = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
-            let y: Option<i32> = affine_wavefront_cond_fetch(in_i_ext_wf, k-1);
-            let maybe_ins: Option<i32> = *vec![x, y].iter().max().unwrap();
-            let ins = match maybe_ins {
-                Some(v) => v+1,
-                None => -10,
-            };
+            let x: i32 = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
+            let y: i32 = affine_wavefront_cond_fetch(in_i_ext_wf, k-1);
+            let ins: i32 = *vec![x, y].iter().max().unwrap();
 
-            out_i_wf.offsets[k_index] = ins;
+            out_i_wf.offsets[k_index] = ins+1;
 
             // Update M
             let k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let maybe_sub: Option<i32> = affine_wavefront_cond_fetch(in_m_sub_wf, k);
-            let maybe_sub: Option<i32> = *vec![maybe_sub, Some(ins)].iter().max().unwrap();
+            let sub: i32 = affine_wavefront_cond_fetch(in_m_sub_wf, k) + 1;
+            let sub: i32 = *vec![sub, ins].iter().max().unwrap();
 
-            let sub = match maybe_sub {
-                Some(v) => v,
-                None => -10,
-            };
 
             out_m_wf.offsets[k_index] = sub;
         }
@@ -611,25 +607,16 @@ pub fn wf_next(
             // comapre gap open on M and gap extend on I
             let k_index: usize = compute_k_index(out_d_wf.len(), out_d_wf.hi, k);
 
-            let x: Option<i32> = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
-            let y: Option<i32> = affine_wavefront_cond_fetch(in_d_ext_wf, k-1);
-            let maybe_del: Option<i32> = *vec![x, y].iter().max().unwrap();
-            let del = match maybe_del {
-                Some(v) => v,
-                None => -10,
-            };
+            let x: i32 = affine_wavefront_cond_fetch(in_m_gap_wf, k-1);
+            let y: i32 = affine_wavefront_cond_fetch(in_d_ext_wf, k-1);
+            let del = *vec![x, y].iter().max().unwrap();
 
             out_d_wf.offsets[k_index] = del;
 
             // Update M
             let k_index = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let maybe_sub: Option<i32> = affine_wavefront_cond_fetch(in_m_sub_wf, k);
-            let maybe_sub: Option<i32> = *vec![maybe_sub, Some(del)].iter().max().unwrap();
-
-            let sub = match maybe_sub {
-                Some(v) => v,
-                None => -10,
-            };
+            let sub: i32 = affine_wavefront_cond_fetch(in_m_sub_wf, k) + 1;
+            let max_m: i32 = *vec![sub, del].iter().max().unwrap();
 
             out_m_wf.offsets[k_index] = sub;
         }
@@ -643,7 +630,7 @@ pub fn wf_next(
         let out_d_wf: &mut types::WaveFront = &mut wf_set.d.as_mut().unwrap();
         let out_i_wf: &mut types::WaveFront = &mut wf_set.i.as_mut().unwrap();
 
-        eprintln!("{:?}", awf_set);
+        // eprintln!("{:#?}", awf_set);
 
         let maybe_in_m_sub_wf: Option<&types::WaveFront> = awf_set.in_m_sub;
         let maybe_in_m_gap_wf: Option<&types::WaveFront> = awf_set.in_m_gap;
@@ -671,36 +658,28 @@ pub fn wf_next(
         for k in lo..=hi {
             // Update I
             let k_index: usize = compute_k_index(out_i_wf.len(), out_i_wf.hi, k);
-            let ins_m = maybe_in_m_gap_wf.and_then(|m_gap| affine_wavefront_cond_fetch(m_gap, k-1));
-            let ins_i = maybe_in_i_ext_wf.and_then(|i_ext| affine_wavefront_cond_fetch(i_ext, k-1));
-            let maybe_ins: Option<i32> = vec![ins_m, ins_i].into_iter().max().unwrap().map(|i| i+1);
-            let ins = match maybe_ins {
-                Some(v) => v,
-                None => -10,
-            };
+            let ins_m = maybe_in_m_gap_wf.and_then(|m_gap| Some(affine_wavefront_cond_fetch(m_gap, k-1)));
+            let ins_i = maybe_in_i_ext_wf.and_then(|i_ext| Some(affine_wavefront_cond_fetch(i_ext, k-1)));
+            let ins: i32 = vec![ins_m, ins_i].into_iter().max().unwrap().map(|i| i+1).unwrap();
+            // let ins: i32 = maybe_ins.unwrap_or(-10);
             out_i_wf.offsets[k_index] = ins;
 
             // Update D
             let k_index: usize = compute_k_index(out_d_wf.len(), out_d_wf.hi, k);
-            let del_m = maybe_in_m_gap_wf.and_then(|m_gap| affine_wavefront_cond_fetch(m_gap, k+1));
-            let del_i = maybe_in_d_ext_wf.and_then(|d_ext| affine_wavefront_cond_fetch(d_ext, k+1));
-            let maybe_del: Option<i32> = vec![del_m, del_i].into_iter().max().unwrap();
-            let del = match maybe_del {
-                Some(v) => v,
-                None => -10,
-            };
+            let del_m = maybe_in_m_gap_wf.and_then(|m_gap| Some(affine_wavefront_cond_fetch(m_gap, k+1)));
+            let del_i = maybe_in_d_ext_wf.and_then(|d_ext| Some(affine_wavefront_cond_fetch(d_ext, k+1)));
+            let del: i32 = vec![del_m, del_i].into_iter().max().unwrap().unwrap();
+            // let del: i32 = maybe_del.unwrap_or(-10);
             out_d_wf.offsets[k_index] = del;
 
             // Update M
             let k_index: usize = compute_k_index(out_m_wf.len(), out_m_wf.hi, k);
-            let sub_m: Option<i32> = maybe_in_m_sub_wf.and_then(|m_sub| affine_wavefront_cond_fetch(m_sub, k)).map(|x| x+1);
-            let maybe_sub: Option<i32> = *vec![sub_m, Some(ins), Some(del)].iter().max().unwrap();
-            let sub = match maybe_sub {
-                Some(v) => v,
-                None => -10,
-            };
+            let sub_m: Option<i32> = maybe_in_m_sub_wf.and_then(|m_sub| Some(affine_wavefront_cond_fetch(m_sub, k))).map(|x| if x == -10 { -10 } else { x+1 });
+            let sub: i32 = vec![sub_m, Some(ins), Some(del)].into_iter().max().unwrap().unwrap();
+            // let sub = maybe_sub.unwrap_or(-10);
             out_m_wf.offsets[k_index] = sub;
 
+            eprintln!("\t\tk {}\tM {}\tI {}\tD {}", k, sub,ins, del);
         }
         /*
         for k in max_lo..=min_hi {
@@ -768,7 +747,7 @@ pub fn wf_align<F>(
     config: &types::Config
 ) -> (usize, String)
 where
-    F: Fn(usize, usize) -> bool
+    F: Fn(i32, i32) -> bool
 {
     if config.verbosity > 1 {
         eprintln!("[wflambda::wf_align]");
@@ -809,7 +788,7 @@ where
     // all_wavefronts.wavefront_set[0].m.vals[0] = 0;
     assert_eq!(all_wavefronts.get_m_wavefront(score as i32).unwrap().get_offset(a_k as i32).cloned().unwrap(), 0);
 
-    let mut match_posititons: Vec<(usize, usize, usize)> = Vec::new();
+    let mut match_posititons: Vec<(i32, i32, usize)> = Vec::new();
 
     // Print config
     if config.verbosity > 0 {
@@ -831,7 +810,7 @@ where
                 .m
                 .as_mut()
                 .unwrap();
-            wf_extend(m_wf_mut, match_lambda, &config, &mut match_posititons);
+            wf_extend(m_wf_mut, match_lambda, &config, &mut match_posititons,score);
         }
 
         // Check whether we have reached the final point
@@ -926,6 +905,7 @@ mod tests {
 
         use super::{super::*, *};
 
+        #[ignore]
         #[test]
         fn align_same_sequence() {
             // different sequences
@@ -938,8 +918,14 @@ mod tests {
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
 
-            let match_lambda = |v: usize, h: usize| {
-                v < tlen && h < qlen && t[v] == q[h]
+
+            let match_lambda = |v: i32, h: i32| {
+                if v < 0 || h < 0 {
+                    return false;
+                }
+                let v = v as usize;
+                let h = h as usize;
+                h < tlen && v < qlen && t[h] == q[v]
             };
 
             let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
@@ -963,13 +949,18 @@ mod tests {
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();
 
-                let match_lambda = |v: usize, h: usize| {
-                    v < tlen && h < qlen && t[v] == q[h]
+                let match_lambda = |v: i32, h: i32| {
+                    if v < 0 || h < 0 {
+                        return false;
+                    }
+                    let v = v as usize;
+                    let h = h as usize;
+                    h < tlen && v < qlen && t[h] == q[v]
                 };
 
-                let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda, &test_config::CONFIG);
-                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+                // let (score, cigar) = wf_align(tlen  as u32, qlen  as u32, &match_lambda, &test_config::CONFIG);
+                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
 
             {
@@ -983,13 +974,18 @@ mod tests {
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();
 
-                let match_lambda = |v: usize, h: usize| {
-                    v < tlen && h < qlen && t[v] == q[h]
+                let match_lambda = |v: i32, h: i32| {
+                    if v < 0 || h < 0 {
+                        return false;
+                    }
+                    let v = v as usize;
+                    let h = h as usize;
+                    h < tlen && v < qlen && t[h] == q[v]
                 };
 
-                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
-                // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+                let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
 
             {
@@ -1003,11 +999,16 @@ mod tests {
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();
 
-                let match_lambda = |v: usize, h: usize| {
-                    v < tlen && h < qlen && t[v] == q[h]
+                let match_lambda = |v: i32, h: i32| {
+                    if v < 0 || h < 0 {
+                        return false;
+                    }
+                    let v = v as usize;
+                    let h = h as usize;
+                    h < tlen && v < qlen && t[h] == q[v]
                 };
 
-                let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
+                // let (score, cigar) = wf_align(tlen as u32, qlen as u32, &match_lambda, &test_config::CONFIG);
                 // eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 // crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }

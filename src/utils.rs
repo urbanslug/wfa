@@ -36,12 +36,13 @@ pub fn abs_sub(lhs: i32, rhs: i32) -> i32 {
     num::abs(result)
 }
 
-pub fn compute_v(offset: i32, k: i32) -> usize {
-    abs_sub(offset, k as i32) as usize
+
+pub fn compute_v(offset: i32, k: i32) -> i32 {
+    offset - k
 }
 
-pub fn compute_h(offset: i32, _: i32) -> usize {
-    offset as usize
+pub fn compute_h(offset: i32, _: i32) -> i32 {
+    offset
 }
 
 pub fn end_reached(
@@ -257,11 +258,12 @@ pub mod backtrace_utils {
 pub mod debug_utils {
     use super::*;
 
+
     pub fn visualize_all(
         all_wavefronts: &types::WaveFronts,
         a_offset: u32,
         each_wf: &Vec<types::WfType>,
-        match_positions: &Vec<(usize, usize, usize)>,
+        match_positions: &Vec<(i32, i32, usize)>,
         config: &types::Config,
         score: usize
     ) {
@@ -273,10 +275,12 @@ pub mod debug_utils {
             eprintln!("\tPopulating matrix");
         }
 
+
         let dim = (a_offset as usize+1, a_offset as usize+1);
         let x = ndarray::Dim(dim);
         let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
 
+        eprintln!("\t\tk\tscore\toffset\t(v,h)");
         for s in (0..=score).rev() {
             let wf_specific: &types::WaveFront = match all_wavefronts.get_m_wavefront(s as i32) {
                 Some(m) => m,
@@ -295,16 +299,20 @@ pub mod debug_utils {
                 let m_s_k: i32 = offsets[k_index];
 
                 for offset in  m_s_k..=m_s_k {
-                    let v: usize = compute_v(offset, k);
-                    let h: usize = compute_h(offset, k);
+                    let v = compute_v(offset, k);
+                    let h = compute_h(offset, k);
 
                     // eprintln!("offset: {}\tk: {}\tscore: {}\t({}, {})", m_s_k,  k, score, v, h);
 
-                    eprintln!("\t\tscore: {}, k: {} offset: {}", s, k, offset);
+                    eprintln!("\t\t{}\t{}\t{}\t({},{})", k, s, offset, v, h);
 
-                    if v >= dim.0 || h >= dim.0 {
+
+                    if v < 0 || h < 0 || v >= dim.0 as i32 || h >= dim.0 as i32 {
                         continue;
                     }
+
+                    let v = v as usize;
+                    let h = h as usize;
 
                     if config.verbosity > 5 {
                         // eprintln!("\t\t({},{})\t{}\t{}", v, h, s, offset);
@@ -321,6 +329,14 @@ pub mod debug_utils {
         for (v, h, score) in match_positions {
             let v = *v;
             let h = *h;
+
+            if v < 0 || h < 0 || v >= dim.0 as i32 || h >= dim.0 as i32 {
+                continue;
+            }
+
+            let v = v as usize;
+            let h = h as usize;
+
             if v == h {
                 matrix[[v, h]] = Some(*score as i32);
             }
