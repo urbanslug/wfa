@@ -5,7 +5,6 @@ Constraints:
  - max qlen and tlen is max value of i32 because of
    * hi and lo fields in WaveFrontSet
    * further bound by computing a_k in [wf_align]
-
  */
 use num;
 use std::cmp;
@@ -215,7 +214,6 @@ pub fn wf_extend<F>(
     config: &types::Config,
     match_positions: &mut Vec<(i32, i32, usize)>,
     score: usize
-
 )
 where
     F: Fn(i32, i32) -> bool,
