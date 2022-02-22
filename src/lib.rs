@@ -451,7 +451,11 @@ fn foobar<'a>(
     wavefronts_to_allocate
 }
 
-pub fn wf_next(wavefronts: &mut types::WaveFronts, score: usize, config: &types::Config) {
+pub fn wf_next(
+    wavefronts: &mut types::WaveFronts,
+    score: usize,
+    config: &types::Config
+) {
     if config.verbosity > 1 {
         eprintln!("\t[wflambda::wf_next]");
     }
@@ -937,28 +941,34 @@ mod tests {
 
     mod align {
 
-        use super::{super::*, *};
+        mod same_sequence {
+            use crate::wf_align;
+            use super::super::test_config;
 
-        #[test]
-        fn align_same_sequence() {
-            // different sequences
-            let text = "GAGAAT";
-            let query = "GAGAAT";
+            #[test]
+            fn test_short() {
+                // different sequences
+                let text  = "GAGAAT";
+                let query = "GAGAAT";
 
-            let t: &[u8] = text.as_bytes();
-            let q: &[u8] = query.as_bytes();
+                let t: &[u8] = text.as_bytes();
+                let q: &[u8] = query.as_bytes();
 
-            let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
 
-            assert_eq!(score, 0);
+                assert_eq!(score, 0);
 
-            eprintln!("\nScore: {}", score);
-            eprintln!();
+                eprintln!("\nScore: {}", score);
+                eprintln!();
+            }
         }
 
-        #[test]
-        fn align_different_sequence_same_len() {
-            {
+        mod different_sequence_same_len {
+            use crate::wf_align;
+            use super::super::test_config;
+
+            #[test]
+            fn test_short() {
                 // different sequences
                 let text = "GAGATA";
                 let query = "GACACA";
@@ -967,34 +977,29 @@ mod tests {
                 let q: &[u8] = query.as_bytes();
 
                 let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
-
                 eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
 
-            {
-                // different sequences
-                let text  = "TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGT";
-                let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGT";
-
-                let tlen = text.len();
-                let qlen = query.len();
-
-                let t: &[u8] = text.as_bytes();
-                let q: &[u8] = query.as_bytes();
-
-                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
-                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
-                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
-            }
-
-            {
+            #[test]
+            fn test_long() {
                 // different sequences
                 let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGT";
                 let text = "TCTATACTGCGCGTTTGGAGAAATAAAATAGT";
 
-                let tlen = text.len();
-                let qlen = query.len();
+                let t: &[u8] = text.as_bytes();
+                let q: &[u8] = query.as_bytes();
+
+                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+            }
+
+            #[test]
+            fn test_longest() {
+                // different sequences
+                let text  = "TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGT";
+                let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGT";
 
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();
@@ -1005,10 +1010,12 @@ mod tests {
             }
         }
 
-        #[ignore]
-        #[test]
-        fn align_different_sequence_different_length() {
-            {
+        mod different_sequence_different_len {
+            use crate::wf_align;
+            use super::super::test_config;
+
+            #[test]
+            fn test_short_shorter_text() {
                 // different sequences
                 let text = "GAGATA";
                 let query = "GACACA";
@@ -1017,7 +1024,50 @@ mod tests {
                 let q: &[u8] = query.as_bytes();
 
                 let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+            }
 
+            #[test]
+            fn test_short_shorter_query() {
+                // different sequences
+                let text = "GAGATA";
+                let query = "GACACA";
+
+                let t: &[u8] = text.as_bytes();
+                let q: &[u8] = query.as_bytes();
+
+                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+            }
+
+            #[ignore]
+            #[test]
+            fn test_long_shorter_text() {
+                // different sequences
+                let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGT";
+                let text = "TCTATACTGCGCGTTTGGAGAAATAAAATAGT";
+
+                let t: &[u8] = text.as_bytes();
+                let q: &[u8] = query.as_bytes();
+
+                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+            }
+
+            #[ignore]
+            #[test]
+            fn test_long_shorter_query() {
+                // different sequences
+                let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGT";
+                let text = "TCTATACTGCGCGTTTGGAGAAATAAAATAGT";
+
+                let t: &[u8] = text.as_bytes();
+                let q: &[u8] = query.as_bytes();
+
+                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
                 eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
