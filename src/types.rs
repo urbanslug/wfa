@@ -24,7 +24,6 @@ pub struct Config {
     pub penalties: Penalties,
 }
 
-
 // ----------------------
 //     Core types
 // ----------------------
@@ -32,14 +31,14 @@ pub struct Config {
 pub enum WfType {
     D,
     I,
-    M
+    M,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum BacktraceOperation {
     MatchMismatch,
     Insertion,
-    Deletion
+    Deletion,
 }
 
 /// The a single wavefront with a score
@@ -119,7 +118,7 @@ pub struct WaveFronts {
 
     pub min_k: i32,
     pub max_k: i32,
-    pub a_k: usize
+    pub a_k: usize,
 }
 
 impl WaveFronts {
@@ -149,7 +148,7 @@ impl WaveFronts {
         let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
         match maybe_wf_set {
             Some(v) => v.m.as_ref(),
-            _ => None
+            _ => None,
         }
     }
 
@@ -162,7 +161,7 @@ impl WaveFronts {
         let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
         match maybe_wf_set {
             Some(v) => v.i.as_ref(),
-            _ => None
+            _ => None,
         }
     }
 
@@ -175,7 +174,7 @@ impl WaveFronts {
         let maybe_wf_set: Option<&WaveFrontSet> = self.option_get(score);
         match maybe_wf_set {
             Some(v) => v.d.as_ref(),
-            _ => None
+            _ => None,
         }
     }
 
@@ -198,9 +197,8 @@ impl WaveFronts {
         score: u32,
         lo: i32,
         hi: i32,
-        wavefronts_to_allocate: &Vec<WfType>
-    ) -> Result<(), &str>
-    {
+        wavefronts_to_allocate: &Vec<WfType>,
+    ) -> Result<(), &str> {
         // should only add what is necessary
         let max_score = self.max_score();
         let len = num::abs_sub(hi, lo) as usize + 1;
@@ -211,26 +209,26 @@ impl WaveFronts {
             return Err("[types::allocate_wavefronts] fuckery detected");
         }
 
-        for index in max_score+1..=score {
+        for index in max_score + 1..=score {
             if index == score {
                 let wf_set = WaveFrontSet {
                     i: {
                         if wavefronts_to_allocate.contains(&WfType::I) {
-                            Some( WaveFront::new(hi, lo))
+                            Some(WaveFront::new(hi, lo))
                         } else {
                             None
                         }
                     },
                     d: {
                         if wavefronts_to_allocate.contains(&WfType::D) {
-                            Some( WaveFront::new(hi, lo))
+                            Some(WaveFront::new(hi, lo))
                         } else {
                             None
                         }
                     },
-                    m:  {
+                    m: {
                         if wavefronts_to_allocate.contains(&WfType::M) {
-                            Some( WaveFront::new(hi, lo))
+                            Some(WaveFront::new(hi, lo))
                         } else {
                             None
                         }

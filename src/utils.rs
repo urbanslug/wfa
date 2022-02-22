@@ -1,16 +1,14 @@
-use num;
-use ndarray::{Array2, Array};
+use ndarray::{Array, Array2};
 use ndarray_to_img;
+use num;
 use std::fs;
 use std::path;
 
 use crate::types;
 
-
-
 // How many cells does the wave cross?
 pub fn compute_wave_length(lo: i32, hi: i32) -> usize {
-    (hi-lo+1) as usize
+    (hi - lo + 1) as usize
 }
 
 pub fn to_usize_or_zero<T: num::cast::ToPrimitive>(n: T) -> usize {
@@ -36,7 +34,6 @@ pub fn abs_sub(lhs: i32, rhs: i32) -> i32 {
     num::abs(result)
 }
 
-
 pub fn compute_v(offset: i32, k: i32) -> i32 {
     offset - k
 }
@@ -45,14 +42,10 @@ pub fn compute_h(offset: i32, _: i32) -> i32 {
     offset
 }
 
-pub fn end_reached(
-    m_wavefront: Option<&types::WaveFront>,
-    a_k: usize,
-    a_offset: u32
-) -> bool {
+pub fn end_reached(m_wavefront: Option<&types::WaveFront>, a_k: usize, a_offset: u32) -> bool {
     let m_wavefront = match m_wavefront {
         Some(wf) => wf,
-        _ => { return false }
+        _ => return false,
     };
 
     let k_index: usize = compute_k_index(m_wavefront.len(), a_k as i32, m_wavefront.hi);
@@ -75,37 +68,37 @@ pub mod backtrace_utils {
         let mut q_iter = q.iter();
         let mut t_iter = t.iter();
 
-        let foo = |y: Option<&u8>| -> String {
-            format!("{}", *y.unwrap_or( &b'X' ) as char)
-        };
+        let foo = |y: Option<&u8>| -> String { format!("{}", *y.unwrap_or(&b'X') as char) };
 
         for c in cigar.as_bytes() {
             match c {
-                b'M'=> {
-                    query.push_str( &foo(q_iter.next()) );
+                b'M' => {
+                    query.push_str(&foo(q_iter.next()));
                     marker.push_str(vertical_bar);
-                    text.push_str( &foo(t_iter.next()) );
-                },
+                    text.push_str(&foo(t_iter.next()));
+                }
 
                 b'X' => {
-                    query.push_str( &foo(q_iter.next()) );
+                    query.push_str(&foo(q_iter.next()));
                     marker.push_str(space);
-                    text.push_str( &foo(t_iter.next()) );
-                },
+                    text.push_str(&foo(t_iter.next()));
+                }
 
                 b'I' => {
                     query.push_str(dash);
                     marker.push_str(space);
-                    text.push_str( &foo(t_iter.next()) );
-                },
+                    text.push_str(&foo(t_iter.next()));
+                }
 
                 b'D' => {
-                    query.push_str( &foo(q_iter.next()) );
+                    query.push_str(&foo(q_iter.next()));
                     marker.push_str(space);
                     text.push_str(dash);
-                },
+                }
 
-                _ => { panic!("[utils::backtrace_utils::print_aln] found char not M, I, X or D") },
+                _ => {
+                    panic!("[utils::backtrace_utils::print_aln] found char not M, I, X or D")
+                }
             }
         }
 
@@ -117,7 +110,6 @@ pub mod backtrace_utils {
         eprintln!("{}", marker);
         eprintln!("{}", text);
     }
-
 
     // Compare current to next and accumulate counts
     // O(n)
@@ -157,12 +149,7 @@ pub mod backtrace_utils {
         }
     }
 
-    pub fn backtrace_matches_check(
-        offset: &mut i32,
-        cigar: &mut String,
-        num_matches: u32,
-        k: i32,
-    ) {
+    pub fn backtrace_matches_check(offset: &mut i32, cigar: &mut String, num_matches: u32, k: i32) {
         // TODO: improve this add M x-times and subtruct offset by num_matches
         (0..num_matches).for_each(|_| {
             // let v = compute_v(*offset, k, central_diagonal);
@@ -176,7 +163,7 @@ pub mod backtrace_utils {
     pub fn backtrace_deletion_open_offset(
         all_wavefronts: &crate::types::WaveFronts,
         score: i32,
-        k: i32
+        k: i32,
     ) -> Option<i32> {
         if score < 0 {
             return None;
@@ -185,14 +172,14 @@ pub mod backtrace_utils {
         // if m_wf.lo <= k + 1 && k + 1 <= m_wf.hi {
         all_wavefronts
             .get_m_wavefront(score)
-            .and_then(|d_wf| d_wf.get_offset(k+1))
+            .and_then(|d_wf| d_wf.get_offset(k + 1))
             .cloned()
     }
 
     pub fn backtrace_deletion_extend_offset(
         all_wavefronts: &crate::types::WaveFronts,
         score: i32,
-        k: i32
+        k: i32,
     ) -> Option<i32> {
         if score < 0 {
             return None;
@@ -201,14 +188,14 @@ pub mod backtrace_utils {
         // is d_wf.lo <= k + 1 && k + 1 <= d_wf.hi
         all_wavefronts
             .get_d_wavefront(score)
-            .and_then(|d_wf| d_wf.get_offset(k+1))
+            .and_then(|d_wf| d_wf.get_offset(k + 1))
             .cloned()
     }
 
     pub fn backtrace_insertion_open_offset(
         all_wavefronts: &crate::types::WaveFronts,
         score: i32,
-        k: i32
+        k: i32,
     ) -> Option<i32> {
         if score < 0 {
             return None;
@@ -216,7 +203,7 @@ pub mod backtrace_utils {
 
         all_wavefronts
             .get_m_wavefront(score)
-            .and_then(|i_wf| i_wf.get_offset(k-1))
+            .and_then(|i_wf| i_wf.get_offset(k - 1))
             .cloned()
             .map(|x| x + 1)
     }
@@ -224,7 +211,7 @@ pub mod backtrace_utils {
     pub fn backtrace_insertion_extend_offset(
         all_wavefronts: &crate::types::WaveFronts,
         score: i32,
-        k: i32
+        k: i32,
     ) -> Option<i32> {
         if score < 0 {
             return None;
@@ -233,7 +220,7 @@ pub mod backtrace_utils {
         // if i_wf.lo <= k - 1 && k - 1 <= i_wf.hi {
         all_wavefronts
             .get_i_wavefront(score)
-            .and_then(|i_wf| i_wf.get_offset(k-1))
+            .and_then(|i_wf| i_wf.get_offset(k - 1))
             .cloned()
             .map(|x| x + 1)
     }
@@ -241,7 +228,7 @@ pub mod backtrace_utils {
     pub fn backtrace_mismatch_offset(
         all_wavefronts: &crate::types::WaveFronts,
         score: i32,
-        k: i32
+        k: i32,
     ) -> Option<i32> {
         if score < 0 {
             return None;
@@ -258,14 +245,13 @@ pub mod backtrace_utils {
 pub mod debug_utils {
     use super::*;
 
-
     pub fn visualize_all(
         all_wavefronts: &types::WaveFronts,
         a_offset: u32,
         each_wf: &Vec<types::WfType>,
         match_positions: &Vec<(i32, i32, usize)>,
         config: &types::Config,
-        score: usize
+        score: usize,
     ) {
         if config.verbosity > 1 {
             eprintln!("[utils::visualize_all]");
@@ -275,8 +261,7 @@ pub mod debug_utils {
             eprintln!("\tPopulating matrix");
         }
 
-
-        let dim = (a_offset as usize+1, a_offset as usize+1);
+        let dim = (a_offset as usize + 1, a_offset as usize + 1);
         let x = ndarray::Dim(dim);
         let mut matrix: Array2<Option<i32>> = Array::from_elem(x, None);
 
@@ -298,14 +283,13 @@ pub mod debug_utils {
                 let k_index: usize = compute_k_index(len, k, hi);
                 let m_s_k: i32 = offsets[k_index];
 
-                for offset in  m_s_k..=m_s_k {
+                for offset in m_s_k..=m_s_k {
                     let v = compute_v(offset, k);
                     let h = compute_h(offset, k);
 
                     // eprintln!("offset: {}\tk: {}\tscore: {}\t({}, {})", m_s_k,  k, score, v, h);
 
                     eprintln!("\t\t{}\t{}\t{}\t({},{})", k, s, offset, v, h);
-
 
                     if v < 0 || h < 0 || v >= dim.0 as i32 || h >= dim.0 as i32 {
                         continue;
@@ -318,8 +302,7 @@ pub mod debug_utils {
                         // eprintln!("\t\t({},{})\t{}\t{}", v, h, s, offset);
                     }
 
-
-                    matrix[[v,h]] = Some(offset);
+                    matrix[[v, h]] = Some(offset);
                 }
             }
 
