@@ -878,6 +878,7 @@ pub fn wf_align(
                 .m
                 .as_mut()
                 .unwrap();
+
             wf_extend(
                 m_wf_mut,
                 &config,
@@ -1017,7 +1018,7 @@ mod tests {
             #[test]
             fn test_short_shorter_text() {
                 // different sequences
-                let text = "GAGATA";
+                let text = "ACACA";
                 let query = "GACACA";
 
                 let t: &[u8] = text.as_bytes();
@@ -1032,7 +1033,7 @@ mod tests {
             fn test_short_shorter_query() {
                 // different sequences
                 let text = "GAGATA";
-                let query = "GACACA";
+                let query = "GACAC";
 
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();

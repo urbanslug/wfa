@@ -68,7 +68,8 @@ pub mod backtrace_utils {
         let mut q_iter = q.iter();
         let mut t_iter = t.iter();
 
-        let foo = |y: Option<&u8>| -> String { format!("{}", *y.unwrap_or(&b'X') as char) };
+        // TODO: does this unwrap or gap introduce a bug?
+        let foo = |y: Option<&u8>| -> String { format!("{}", *y.unwrap_or(&b'-') as char) };
 
         for c in cigar.as_bytes() {
             match c {
