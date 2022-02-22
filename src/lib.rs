@@ -945,9 +945,6 @@ mod tests {
             let text = "GAGAAT";
             let query = "GAGAAT";
 
-            let tlen = text.len();
-            let qlen = query.len();
-
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
 
@@ -965,9 +962,6 @@ mod tests {
                 // different sequences
                 let text = "GAGATA";
                 let query = "GACACA";
-
-                let tlen = text.len();
-                let qlen = query.len();
 
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();
@@ -1005,9 +999,25 @@ mod tests {
                 let t: &[u8] = text.as_bytes();
                 let q: &[u8] = query.as_bytes();
 
+                let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+                eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
+                crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
+            }
+        }
 
+        #[ignore]
+        #[test]
+        fn align_different_sequence_different_length() {
+            {
+                // different sequences
+                let text = "GAGATA";
+                let query = "GACACA";
+
+                let t: &[u8] = text.as_bytes();
+                let q: &[u8] = query.as_bytes();
 
                 let (score, cigar) = wf_align(t, q, &test_config::CONFIG);
+
                 eprintln!("Result:\n\tScore: {} Cigar {}", score, cigar);
                 crate::utils::backtrace_utils::print_aln(&cigar[..], t, q);
             }
