@@ -1,4 +1,5 @@
-# WFA
+# WFA and wfλ
+## WFA
 
 Wavefront expansion global alignment algorithm.
 
@@ -32,6 +33,13 @@ A_k = (tlen-qlen) The central diagonal
 
 ![M-WaveFront](./Figures/M-Wavefront-Example.png)
 
+
+## wfλ
+
+Rust implementation of [ekg/wflambda](https://github.com/ekg/wflambda).
+
+A generalization of the wavefront alignment (WFA) algorithm
+that lets us to run WFA on regions and not only perform base level alignment.
 
 ### Citation
 
