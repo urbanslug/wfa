@@ -100,31 +100,21 @@ pub fn wflambda_backtrace_matches_check<G>(
     k: i32,
     traceback_lambda: &mut G
 ) where
-    G: FnMut((i32, i32), (i32, i32)) {
+    G: FnMut((i32, i32), (i32, i32)) -> bool,
+{
+    let query_stop = compute_v(*offset, k);
+    let target_stop = compute_h(*offset, k);
 
-    {
-        // let o = *offset as u64;
-        let query_stop = compute_v(*offset, k);
-        let target_stop = compute_h(*offset, k);
+    let query_start = query_stop - num_matches as i32;
+    let target_start = target_stop - num_matches as i32;
 
+    let query = (query_start as i32, query_stop as i32);
+    let target = (target_start as i32, target_stop as i32);
 
-        let query_start = query_stop - num_matches as i32;
-        let target_start = target_stop - num_matches as i32;
-
-        let query = (query_start as i32, query_stop as i32);
-        let target = (target_start as i32, target_stop as i32);
-
-        traceback_lambda(query, target);
+    if traceback_lambda(query, target) {
+        cigar.extend(repeat_char('M', num_matches));
+        *offset -= num_matches as i32;
     }
-
-    // TODO: improve this add M x-times and subtruct offset by num_matches
-    (0..num_matches).for_each(|_| {
-        // let v = compute_v(*offset, k, central_diagonal);
-        // let h = compute_h(*offset, k, central_diagonal);
-
-        cigar.push('M');
-        *offset -= 1;
-    });
 }
 
 // TODO: will this ever run in regions without a match?

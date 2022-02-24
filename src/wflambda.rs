@@ -14,7 +14,7 @@ fn wf_traceback<G>(
     traceback_lambda: &mut G,
 ) -> String
 where
-    G: FnMut((i32, i32), (i32, i32))
+    G: FnMut((i32, i32), (i32, i32)) -> bool,
 {
     if config.verbosity > 1 {
         eprintln!("\t[wfa::wf_backtrace]");
@@ -269,7 +269,7 @@ pub fn wf_align<F, G>(
 ) -> (usize, String)
 where
     F: FnMut(&mut i32, &mut i32, &mut i32) -> bool,
-    G: FnMut((i32, i32), (i32, i32)),
+    G: FnMut((i32, i32), (i32, i32)) -> bool,
 {
     if config.verbosity > 1 {
         eprintln!("[wflambda::wf_align]");
@@ -367,6 +367,7 @@ where
 
 
 #[cfg(test)]
+#[allow(unused_imports)]
 use pretty_assertions::{assert_eq};
 mod tests {
     mod same_sequence {
@@ -403,7 +404,23 @@ mod tests {
                 res
             };
 
-            let mut traceback_lambda = |_, _| {};
+            let mut traceback_lambda =
+                |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| -> bool {
+
+                    if q_start < 0
+                        || q_stop as usize > qlen
+                        || t_start < 0
+                        || t_stop as usize > tlen {
+                        return false;
+                    }
+
+                    let q_start = q_start as usize;
+                    let q_stop = q_stop as usize;
+                    let t_start = t_start as usize;
+                    let t_stop = t_stop as usize;
+
+                    q[q_start..q_stop] == t[t_start..t_stop]
+                };
 
             let (score, cigar) = wflambda_align(
                 tlen as u32,
@@ -454,7 +471,23 @@ mod tests {
                 res
             };
 
-            let mut traceback_lambda = |_, _| {};
+            let mut traceback_lambda =
+                |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| -> bool {
+
+                    if q_start < 0
+                        || q_stop as usize > qlen
+                        || t_start < 0
+                        || t_stop as usize > tlen {
+                            return false;
+                        }
+
+                    let q_start = q_start as usize;
+                    let q_stop = q_stop as usize;
+                    let t_start = t_start as usize;
+                    let t_stop = t_stop as usize;
+
+                    q[q_start..q_stop] == t[t_start..t_stop]
+                };
 
             let (score, cigar) = wflambda_align(
                 tlen as u32,
@@ -500,7 +533,24 @@ mod tests {
                 res
             };
 
-            let mut traceback_lambda = |_, _| {};
+            let mut traceback_lambda =
+                |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| -> bool {
+
+                    if q_start < 0
+                        || q_stop as usize > qlen
+                        || t_start < 0
+                        || t_stop as usize > tlen {
+                            return false;
+                        }
+
+                    let q_start = q_start as usize;
+                    let q_stop = q_stop as usize;
+                    let t_start = t_start as usize;
+                    let t_stop = t_stop as usize;
+
+                    q[q_start..q_stop] == t[t_start..t_stop]
+                };
+
 
             let (score, cigar) = wflambda_align(
                 tlen as u32,
@@ -546,7 +596,23 @@ mod tests {
                 res
             };
 
-            let mut traceback_lambda = |_, _| {};
+            let mut traceback_lambda =
+                |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| -> bool {
+
+                    if q_start < 0
+                        || q_stop as usize > qlen
+                        || t_start < 0
+                        || t_stop as usize > tlen {
+                            return false;
+                        }
+
+                    let q_start = q_start as usize;
+                    let q_stop = q_stop as usize;
+                    let t_start = t_start as usize;
+                    let t_stop = t_stop as usize;
+
+                    q[q_start..q_stop] == t[t_start..t_stop]
+                };
 
             let (score, cigar) = wflambda_align(
                 tlen as u32,
