@@ -1,6 +1,6 @@
 use crate::types;
 pub mod backtrace;
-pub mod debug;
+mod debug;
 
 // How many cells does the wave cross?
 pub fn compute_wave_length(lo: i32, hi: i32) -> usize {

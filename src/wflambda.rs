@@ -1,7 +1,6 @@
 /*!
 Run WFA based on a match and traceback function
  */
-use num;
 use std::cmp;
 
 use crate::types;
