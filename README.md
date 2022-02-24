@@ -1,7 +1,8 @@
-# WFA and wfλ
+# WFA and WFλ
+
 ## WFA
 
-Wavefront expansion global alignment algorithm.
+Wavefront expansion global alignment algorithm or wavefront alignment (WFA).
 
 ![WaveFront-Expansion-Schematic](./Figures/wavefronts-expansion-schematic.png)
 
@@ -34,12 +35,19 @@ A_k = (tlen-qlen) The central diagonal
 ![M-WaveFront](./Figures/M-Wavefront-Example.png)
 
 
-## wfλ
+## WFλ
 
 Rust implementation of [ekg/wflambda](https://github.com/ekg/wflambda).
+Moved in from [urbanslug/wflambda](https://github.com/urbanslug/wflambda).
 
-A generalization of the wavefront alignment (WFA) algorithm
-that lets us to run WFA on regions and not only perform base level alignment.
+A generalization of WFA that runs on regions (abstract bases) using a custom
+match & traceback lambdas.
+
+## (Library) Documentation
+
+```
+cargo doc --open
+```
 
 ### Citation
 
