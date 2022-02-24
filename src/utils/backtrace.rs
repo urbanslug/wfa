@@ -126,16 +126,10 @@ pub fn wflambda_backtrace_matches_check<G>(
     });
 }
 
-
-pub fn backtrace_matches_check(offset: &mut i32, cigar: &mut String, num_matches: u32, k: i32) {
-    // TODO: improve this add M x-times and subtruct offset by num_matches
-    (0..num_matches).for_each(|_| {
-        // let v = compute_v(*offset, k, central_diagonal);
-        // let h = compute_h(*offset, k, central_diagonal);
-
-        cigar.push('M');
-        *offset -= 1;
-    });
+// TODO: will this ever run in regions without a match?
+pub fn backtrace_matches_check(offset: &mut i32, cigar: &mut String, num_matches: u32) {
+    cigar.extend(repeat_char('M', num_matches));
+    *offset -= num_matches as i32;
 }
 
 pub fn backtrace_deletion_open_offset(

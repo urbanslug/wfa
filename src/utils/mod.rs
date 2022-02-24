@@ -1,3 +1,6 @@
+use std::iter;
+use std::str;
+
 use crate::types;
 pub mod backtrace;
 mod debug;
@@ -48,4 +51,13 @@ pub fn end_reached(m_wavefront: Option<&types::WaveFront>, a_k: usize, a_offset:
     let m_s_k = m_wavefront.offsets[k_index]; // m_offset
 
     m_s_k > 0 && (m_s_k as u32) >= a_offset
+}
+
+// TODO: make it a macro?
+pub fn repeat_char(c: char, count: u32) -> std::iter::Take<std::iter::Repeat<char>> {
+    iter::repeat(c).take(count as usize)
+}
+
+pub fn vec_u8_to_str_unsafe(v: &Vec<u8>) -> &str {
+    str::from_utf8(v).unwrap()
 }

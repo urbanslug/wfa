@@ -141,9 +141,7 @@ fn wf_traceback(
             backtrace_utils::backtrace_matches_check(
                 &mut offset,
                 &mut cigar,
-                num_matches,
-                k,
-            );
+                num_matches);
             offset = max_all.unwrap();
         }
 
@@ -200,7 +198,7 @@ fn wf_traceback(
     if s == 0 {
         // backtrace matches check
         let num_matches = offset as u32;
-        backtrace_utils::backtrace_matches_check(&mut offset, &mut cigar, num_matches, k);
+        backtrace_utils::backtrace_matches_check(&mut offset, &mut cigar, num_matches);
     } else {
         // add indels
         while v > 0 {
@@ -388,6 +386,7 @@ pub fn wf_align(
 }
 
 #[cfg(test)]
+#[allow(unused_imports)]
 use pretty_assertions::{assert_eq};
 mod tests {
     mod same_sequence {
