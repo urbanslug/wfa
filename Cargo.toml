@@ -11,3 +11,6 @@ authors = ["Njagi Mwaniki <njagi+bio@njagi.me>"]
 num = "^0.4.0"
 ndarray = "^0.15.4"
 ndarray-to-img = { git = "https://github.com/urbanslug/ndarray-to-img.git" }
+
+[dev-dependencies]
+pretty_assertions = "1.1.0"

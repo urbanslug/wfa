@@ -48,10 +48,7 @@ pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
         }
     }
 
-    eprintln!("{}", cigar);
-
     eprintln!();
-
     eprintln!("{}", query);
     eprintln!("{}", marker);
     eprintln!("{}", text);

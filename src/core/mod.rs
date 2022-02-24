@@ -518,3 +518,7 @@ pub fn wf_next(
         }
     };
 }
+
+#[cfg(test)]
+mod tests {
+}
