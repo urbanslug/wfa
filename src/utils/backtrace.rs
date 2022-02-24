@@ -1,45 +1,46 @@
-// TODO: remove
-use super::*;
+use crate::utils::{compute_h, compute_v, repeat_char, self};
+
 // O(n)
 pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
-    let mut query = String::new();
-    let mut marker = String::new();
-    let mut text = String::new();
+    let qlen = q.len();
+    let tlen = t.len();
 
-    let space = &String::from(" ")[..];
-    let dash = &String::from("-")[..];
-    let vertical_bar = &String::from("|")[..];
+    let longer = std::cmp::max(tlen, qlen);
+    let mut marker = Vec::<u8>::with_capacity(longer);
+    let mut query = Vec::<u8>::with_capacity(qlen);
+    let mut text = Vec::<u8>::with_capacity(tlen);
+
+    let space = b' ';
+    let dash = b'-';
+    let vertical_bar = b'|';
 
     let mut q_iter = q.iter();
     let mut t_iter = t.iter();
 
-    // TODO: does this unwrap or gap introduce a bug?
-    let foo = |y: Option<&u8>| -> String { format!("{}", *y.unwrap_or(&b'-') as char) };
-
     for c in cigar.as_bytes() {
         match c {
             b'M' => {
-                query.push_str(&foo(q_iter.next()));
-                marker.push_str(vertical_bar);
-                text.push_str(&foo(t_iter.next()));
+                query.push(*q_iter.next().unwrap());
+                marker.push(vertical_bar);
+                text.push(*t_iter.next().unwrap());
             }
 
             b'X' => {
-                query.push_str(&foo(q_iter.next()));
-                marker.push_str(space);
-                text.push_str(&foo(t_iter.next()));
+                query.push(*q_iter.next().unwrap());
+                marker.push(space);
+                text.push(*t_iter.next().unwrap());
             }
 
             b'I' => {
-                query.push_str(dash);
-                marker.push_str(space);
-                text.push_str(&foo(t_iter.next()));
+                query.push(dash);
+                marker.push(space);
+                text.push(*t_iter.next().unwrap());
             }
 
             b'D' => {
-                query.push_str(&foo(q_iter.next()));
-                marker.push_str(space);
-                text.push_str(dash);
+                query.push(*q_iter.next().unwrap());
+                marker.push(space);
+                text.push(dash);
             }
 
             _ => {
@@ -49,9 +50,9 @@ pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
     }
 
     eprintln!();
-    eprintln!("{}", query);
-    eprintln!("{}", marker);
-    eprintln!("{}", text);
+    eprintln!("{}", utils::vec_u8_to_str_unsafe(&query));
+    eprintln!("{}", utils::vec_u8_to_str_unsafe(&marker));
+    eprintln!("{}", utils::vec_u8_to_str_unsafe(&text));
 }
 
 // Compare current to next and accumulate counts
