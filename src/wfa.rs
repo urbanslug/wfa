@@ -385,9 +385,8 @@ pub fn wf_align(
     (score, cigar)
 }
 
+
 #[cfg(test)]
-#[allow(unused_imports)]
-use pretty_assertions::{assert_eq};
 mod tests {
     mod same_sequence {
         use crate::tests_prelude::*;
@@ -403,7 +402,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
 
-            assert_eq!(score, 0);
+            self::assert_eq!(score, 0);
             dbg!(score, &cigar);
         }
     }
@@ -422,7 +421,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
         #[test]
@@ -436,7 +435,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
         #[test]
@@ -450,7 +449,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
     }
 
@@ -468,7 +467,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
             assert!(false);
         }
 
@@ -483,7 +482,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
         #[ignore]
@@ -498,7 +497,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
         #[ignore]
@@ -513,7 +512,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
     }
 }

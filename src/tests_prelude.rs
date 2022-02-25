@@ -1,5 +1,5 @@
+#![cfg(test)]
 #![allow(dead_code, unused_imports)] // Quiet down needless warnings
-
 
 use std::fs;
 use std::path;
@@ -9,15 +9,13 @@ use crate::utils::*;
 // Re-exports
 pub use crate::wflambda::wf_align as wflambda_align;
 pub use crate::wfa::wf_align as wfa_align;
-
+pub use pretty_assertions::{assert_eq};
 
 // We need #[cfg(test)] guards above the exports and test dependencies
-#[cfg(test)]
+
 use ndarray::{Array, Array2};
-#[cfg(test)]
 use ndarray_to_img;
 
-#[cfg(test)]
 pub static TEST_CONFIG: crate::types::Config = crate::types::Config {
     adapt: false,
     verbosity: 0,
@@ -29,7 +27,6 @@ pub static TEST_CONFIG: crate::types::Config = crate::types::Config {
     },
 };
 
-#[cfg(test)]
 pub fn visualize_all(
     all_wavefronts: &types::WaveFronts,
     a_offset: u32,
@@ -113,7 +110,6 @@ pub fn visualize_all(
     gen_image(&matrix, config);
 }
 
-#[cfg(test)]
 fn gen_image(matrix: &Array2<Option<i32>>, config: &types::Config) {
     if config.verbosity > 1 {
         eprintln!("[utils::gen_image]");

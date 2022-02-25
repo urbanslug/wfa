@@ -114,7 +114,7 @@ pub fn run_length_encode(cigar: &[u8]) -> Vec<u8> {
 }
 
 // O(n)
-pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
+pub fn print_aln(cigar: &[u8], t: &[u8], q: &[u8]) {
     let qlen = q.len();
     let tlen = t.len();
 
@@ -130,7 +130,7 @@ pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
     let mut q_iter = q.iter();
     let mut t_iter = t.iter();
 
-    for c in cigar.as_bytes() {
+    for c in cigar {
         match c {
             b'M' => {
                 query.push(*q_iter.next().unwrap());

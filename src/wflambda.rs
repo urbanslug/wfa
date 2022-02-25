@@ -366,9 +366,8 @@ where
 }
 
 
+
 #[cfg(test)]
-#[allow(unused_imports)]
-use pretty_assertions::{assert_eq};
 mod tests {
     mod same_sequence {
         use crate::tests_prelude::*;
@@ -430,10 +429,10 @@ mod tests {
                 &mut traceback_lambda
             );
 
-            assert_eq!(score, 0);
+            self::assert_eq!(score, 0);
 
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
     }
 
@@ -498,7 +497,7 @@ mod tests {
             );
 
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
         #[test]
@@ -561,7 +560,7 @@ mod tests {
             );
 
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
         #[test]
@@ -623,7 +622,7 @@ mod tests {
             );
 
             dbg!(score, &cigar);
-            crate::utils::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
     }
 }
