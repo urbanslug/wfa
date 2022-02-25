@@ -4,7 +4,7 @@ use std::str;
 use num;
 use crate::types;
 pub mod backtrace;
-mod debug;
+
 
 const ASCII_ZERO: u8 = 48;
 

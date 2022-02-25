@@ -9,23 +9,8 @@ Constraints:
 
 mod core;
 mod utils;
+mod tests_prelude;
 
 pub mod wfa;
 pub mod types;
 pub mod wflambda;
-
-mod tests_prelude {
-    #[allow(dead_code)]
-    pub static TEST_CONFIG: crate::types::Config = crate::types::Config {
-        adapt: false,
-        verbosity: 0,
-        penalties: crate::types::Penalties {
-            mismatch: 4,
-            matches: 0,
-            gap_open: 6,
-            gap_extend: 2,
-        },
-    };
-    pub use crate::wflambda::wf_align as wflambda_align;
-    pub use crate::wfa::wf_align as wfa_align;
-}
