@@ -1,97 +1,4 @@
-use crate::utils::{compute_h, compute_v, repeat_char, self};
-
-// O(n)
-pub fn print_aln(cigar: &str, t: &[u8], q: &[u8]) {
-    let qlen = q.len();
-    let tlen = t.len();
-
-    let longer = std::cmp::max(tlen, qlen);
-    let mut marker = Vec::<u8>::with_capacity(longer);
-    let mut query = Vec::<u8>::with_capacity(qlen);
-    let mut text = Vec::<u8>::with_capacity(tlen);
-
-    let space = b' ';
-    let dash = b'-';
-    let vertical_bar = b'|';
-
-    let mut q_iter = q.iter();
-    let mut t_iter = t.iter();
-
-    for c in cigar.as_bytes() {
-        match c {
-            b'M' => {
-                query.push(*q_iter.next().unwrap());
-                marker.push(vertical_bar);
-                text.push(*t_iter.next().unwrap());
-            }
-
-            b'X' => {
-                query.push(*q_iter.next().unwrap());
-                marker.push(space);
-                text.push(*t_iter.next().unwrap());
-            }
-
-            b'I' => {
-                query.push(dash);
-                marker.push(space);
-                text.push(*t_iter.next().unwrap());
-            }
-
-            b'D' => {
-                query.push(*q_iter.next().unwrap());
-                marker.push(space);
-                text.push(dash);
-            }
-
-            _ => {
-                panic!("[utils::backtrace_utils::print_aln] found char not M, I, X or D")
-            }
-        }
-    }
-
-    eprintln!();
-    eprintln!("{}", utils::vec_u8_to_str_unsafe(&query));
-    eprintln!("{}", utils::vec_u8_to_str_unsafe(&marker));
-    eprintln!("{}", utils::vec_u8_to_str_unsafe(&text));
-}
-
-// Compare current to next and accumulate counts
-// O(n)
-pub fn run_length_encode(cigar: &str, reverse: bool) -> String {
-    let mut cigar = String::from(cigar);
-    if reverse {
-        cigar = cigar.chars().rev().collect::<String>();
-    }
-
-    let mut xcigar = String::new();
-
-    // edge cases
-    if cigar.len() == 0 {
-        panic!("[wfa::utils::run_length_encode] empty cigar");
-    } else if cigar.len() == 1 {
-        xcigar.push_str(&format!("{}{}", 1, cigar));
-        xcigar
-    } else {
-        let mut chars = cigar.chars();
-        let mut current: char = chars.next().unwrap();
-        let mut count = 1;
-
-        for c in chars {
-            if c == current {
-                count += 1;
-            } else {
-                xcigar.push_str(&format!("{}{}", count, current));
-                current = c;
-                count = 1;
-            }
-        }
-
-        // last run
-        xcigar.push_str(&format!("{}{}", count, current));
-
-        xcigar
-    }
-}
+use crate::utils;
 
 pub fn wflambda_backtrace_matches_check<G>(
     offset: &mut i32,
@@ -102,8 +9,8 @@ pub fn wflambda_backtrace_matches_check<G>(
 ) where
     G: FnMut((i32, i32), (i32, i32)) -> bool,
 {
-    let query_stop = compute_v(*offset, k);
-    let target_stop = compute_h(*offset, k);
+    let query_stop = utils::compute_v(*offset, k);
+    let target_stop = utils::compute_h(*offset, k);
 
     let query_start = query_stop - num_matches as i32;
     let target_start = target_stop - num_matches as i32;
@@ -112,14 +19,18 @@ pub fn wflambda_backtrace_matches_check<G>(
     let target = (target_start as i32, target_stop as i32);
 
     if traceback_lambda(query, target) {
-        cigar.extend(repeat_char('M', num_matches));
+        cigar.extend(utils::repeat_char('M', num_matches));
         *offset -= num_matches as i32;
     }
 }
 
 // TODO: will this ever run in regions without a match?
-pub fn backtrace_matches_check(offset: &mut i32, cigar: &mut String, num_matches: u32) {
-    cigar.extend(repeat_char('M', num_matches));
+pub fn backtrace_matches_check(
+    offset: &mut i32,
+    cigar: &mut String,
+    num_matches: u32
+) {
+    cigar.extend(utils::repeat_char('M', num_matches));
     *offset -= num_matches as i32;
 }
 

@@ -422,7 +422,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
 
         #[test]
@@ -436,7 +436,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
 
         #[test]
@@ -450,7 +450,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
     }
 
@@ -468,7 +468,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
             assert!(false);
         }
 
@@ -483,7 +483,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
 
         #[ignore]
@@ -498,7 +498,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
 
         #[ignore]
@@ -513,7 +513,7 @@ mod tests {
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
     }
 }

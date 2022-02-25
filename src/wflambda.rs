@@ -433,7 +433,7 @@ mod tests {
             assert_eq!(score, 0);
 
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
     }
 
@@ -498,7 +498,7 @@ mod tests {
             );
 
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
 
         #[test]
@@ -561,7 +561,7 @@ mod tests {
             );
 
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
 
         #[test]
@@ -623,7 +623,7 @@ mod tests {
             );
 
             dbg!(score, &cigar);
-            crate::utils::backtrace::print_aln(&cigar[..], t, q);
+            crate::utils::print_aln(&cigar[..], t, q);
         }
     }
 }
