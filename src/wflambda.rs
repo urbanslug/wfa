@@ -1,5 +1,5 @@
 /*!
-Run WFA based on a match and traceback function
+Abstract WFA using match and traceback functions
  */
 use std::cmp;
 

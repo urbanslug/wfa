@@ -1,19 +1,34 @@
+/// Generalization over [std::cmp::min]
+/// ```
+/// use wfa::min;
+///
+/// assert_eq!(min![45, 56, 89], 45);
+/// ```
 #[macro_export]
 macro_rules! min {
     () => ({});
     ($x: expr) => ($x);
-    ($x: expr, $($xs: expr),+) => ({ std::cmp::min($x, min!($($xs),*)) });
+    ($x: expr, $($xs: expr),+) => ({ ::std::cmp::min($x, min!($($xs),*)) });
 }
 
+/// Generalization over [std::cmp::max]
+/// # Example
+/// ```
+/// use wfa::max;
+///
+/// let x = 45;
+/// let y = 23;
+/// let z = 73;
+/// assert_eq!(max![&x, &y, &z], &73);
+/// ```
 #[macro_export]
 macro_rules! max {
     () => ({});
     ($x: expr) => ($x);
-    ($x: expr, $($xs: expr),+) => ({ std::cmp::max($x, max!($($xs),*)) });
+    ($x: expr, $($xs: expr),+) => ({ ::std::cmp::max($x, max!($($xs),*)) });
 }
 
 pub(crate) use {max, min};
-
 
 
 #[cfg(test)]

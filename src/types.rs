@@ -1,5 +1,5 @@
 /*!
-wavefront types
+Configs and related WFA types
  */
 
 // ----------------------

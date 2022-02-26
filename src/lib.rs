@@ -1,5 +1,27 @@
 /*!
-Combined wfa and wflambda implementations into one crate.
+Single crate wfa and wflambda.
+
+# Example wflambda
+
+```
+use wfa::wflambda;
+```
+
+# Example wfa
+
+```
+use wfa::wfa;
+```
+
+
+# Visualization
+
+```
+use wfa::wflambda;
+use ndarray_to_img; // https://github.com/urbanslug/ndarray-to-img
+
+```
+
 
 Constraints:
 - max qlen and tlen is max value of i32 because of

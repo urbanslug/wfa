@@ -1,5 +1,5 @@
 /*!
-Pass query and target/text `Vec<u8>`s to wfa
+Base level WFA
  */
 use num;
 use std::cmp;
