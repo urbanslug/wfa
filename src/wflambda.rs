@@ -5,7 +5,7 @@ use std::cmp;
 
 use crate::types;
 use crate::core;
-use crate::utils::{self, backtrace as backtrace_utils};
+use crate::utils::{self, backtrace as backtrace_utils, macros::*};
 
 fn wf_traceback<G>(
     all_wavefronts: &types::WaveFronts,
@@ -260,13 +260,14 @@ fn wf_extend<F>(
     }
 }
 
+// TODO: return Result type
 pub fn wf_align<F, G>(
     tlen: u32,
     qlen: u32,
     config: &types::Config,
     match_lambda: &mut F,
     traceback_lambda: &mut G,
-) -> (usize, String)
+) -> Result<(usize, String), String>
 where
     F: FnMut(&mut i32, &mut i32, &mut i32) -> bool,
     G: FnMut((i32, i32), (i32, i32)) -> bool,
@@ -280,9 +281,16 @@ where
 
     // the furthest offset we expect the central diagonal to reach
     // subtract 1 because of the zero index
-    let a_offset: u32 = cmp::max(tlen, qlen);
+    let a_offset: u32 = max![tlen, qlen];
 
     // eprintln!("\t a_k {} a_offset {}", a_k, a_offset);
+
+    let max_possible_score = max![
+        // longer * mismatch_score
+        config.penalties.mismatch as u32 * a_offset,
+        // gap_ext * longer + gap_open
+        config.penalties.gap_extend as u32 * a_offset  + config.penalties.gap_open as u32
+    ] as usize;
 
     let hi: i32 = a_k as i32;
     let lo: i32 = a_k as i32;
@@ -347,6 +355,11 @@ where
             );
         }
 
+        // give up
+        if score >= max_possible_score {
+            let e = format!("Gave up. {} {}", score, max_possible_score);
+            return Err(e);
+        }
         // Check whether we have reached the final point
         // Get the m-wavefront with the current score
         if utils::end_reached(all_wavefronts.get_m_wavefront(score as i32), a_k, a_offset) {
@@ -362,7 +375,7 @@ where
     //let cigar = String::new();
     let cigar = wf_traceback(&all_wavefronts, score, config, traceback_lambda);
 
-    (score, cigar)
+    Ok((score, cigar))
 }
 
 
@@ -427,7 +440,7 @@ mod tests {
                 &TEST_CONFIG,
                 &mut match_lambda,
                 &mut traceback_lambda
-            );
+            ).unwrap();
 
             self::assert_eq!(score, 0);
 
@@ -494,7 +507,7 @@ mod tests {
                 &TEST_CONFIG,
                 &mut match_lambda,
                 &mut traceback_lambda
-            );
+            ).unwrap();
 
             dbg!(score, &cigar);
             crate::utils::print_aln(cigar.as_bytes(), t, q);
@@ -557,7 +570,7 @@ mod tests {
                 &TEST_CONFIG,
                 &mut match_lambda,
                 &mut traceback_lambda
-            );
+            ).unwrap();
 
             dbg!(score, &cigar);
             crate::utils::print_aln(cigar.as_bytes(), t, q);
@@ -619,7 +632,7 @@ mod tests {
                 &TEST_CONFIG,
                 &mut match_lambda,
                 &mut traceback_lambda
-            );
+            ).unwrap();
 
             dbg!(score, &cigar);
             crate::utils::print_aln(cigar.as_bytes(), t, q);
