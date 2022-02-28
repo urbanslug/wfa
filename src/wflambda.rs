@@ -406,10 +406,10 @@ mod tests {
                 let h_idx = *h as usize;
 
                 let res = h_idx < tlen && v_idx < qlen && t[h_idx] == q[v_idx];
-                *v += 1;
-                *h += 1;
 
                 if res {
+                    *v += 1;
+                    *h += 1;
                     *offset += 1;
                 }
 
@@ -473,10 +473,10 @@ mod tests {
                 let h_idx = *h as usize;
 
                 let res = h_idx < tlen && v_idx < qlen && t[h_idx] == q[v_idx];
-                *v += 1;
-                *h += 1;
 
                 if res {
+                    *v += 1;
+                    *h += 1;
                     *offset += 1;
                 }
 
@@ -535,10 +535,10 @@ mod tests {
                 let h_idx = *h as usize;
 
                 let res = h_idx < tlen && v_idx < qlen && t[h_idx] == q[v_idx];
-                *v += 1;
-                *h += 1;
 
                 if res {
+                    *v += 1;
+                    *h += 1;
                     *offset += 1;
                 }
 
@@ -598,10 +598,10 @@ mod tests {
                 let h_idx = *h as usize;
 
                 let res = h_idx < tlen && v_idx < qlen && t[h_idx] == q[v_idx];
-                *v += 1;
-                *h += 1;
 
                 if res {
+                    *v += 1;
+                    *h += 1;
                     *offset += 1;
                 }
 
