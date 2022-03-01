@@ -9,6 +9,7 @@ authors = ["Njagi Mwaniki <njagi+bio@njagi.me>"]
 
 [dependencies]
 num = "^0.4.0"
+fbox = { git = "https://github.com/urbanslug/fbox.git" }
 
 [dev-dependencies]
 pretty_assertions = "1.1.0"

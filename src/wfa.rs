@@ -7,7 +7,6 @@ use std::cmp;
 use crate::types;
 use crate::utils::{self, backtrace as backtrace_utils};
 use crate::core;
-// use crate::utils::backtrace as bracktrace_utils;
 
 fn wf_traceback(
     all_wavefronts: &types::WaveFronts,

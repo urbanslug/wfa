@@ -4,7 +4,6 @@ use std::str;
 use num;
 use crate::types;
 pub mod backtrace;
-pub mod macros;
 
 const ASCII_ZERO: u8 = 48;
 
@@ -44,7 +43,6 @@ pub fn compute_h(offset: i32, _: i32) -> i32 {
     offset
 }
 
-
 pub fn end_reached(m_wavefront: Option<&types::WaveFront>, a_k: usize, a_offset: u32) -> bool {
     let m_wavefront = match m_wavefront {
         Some(wf) => wf,
@@ -75,8 +73,6 @@ pub fn unsigned_literal_to_u8<T: num::Unsigned + num::ToPrimitive>(v: T) -> u8 {
 pub fn unsigned_num_to_ASCII<T: num::Unsigned + std::fmt::Display>(n: T) -> Vec<u8> {
     n.to_string().as_bytes().to_vec()
 }
-
-
 
 // Compare current to next and accumulate counts
 // O(n)

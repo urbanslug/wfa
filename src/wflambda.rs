@@ -5,7 +5,8 @@ use std::cmp;
 
 use crate::types;
 use crate::core;
-use crate::utils::{self, backtrace as backtrace_utils, macros::*};
+use crate::utils::{self, backtrace as backtrace_utils};
+use fbox::macros::{max};
 
 fn wf_traceback<G>(
     all_wavefronts: &types::WaveFronts,
