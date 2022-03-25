@@ -330,12 +330,15 @@ where
     // Print config
     if config.verbosity > 0 {
         eprintln!(
-            "Config\n\
-                   \ttlen: {}\n\
-                   \tqlen: {}\n\
-                   \ta_k: {}\n\
-                   \ta_offset: {}",
-            qlen, tlen, a_k, a_offset
+            "Config {{\n\
+             {0:two_spaces$}tlen: {1},\n\
+             {0:two_spaces$}qlen: {2}\n\
+             {0:two_spaces$}a_k: {3}\n\
+             {0:two_spaces$}a_offset: {4}\n\
+             }}",
+            "",
+            tlen, qlen, a_k, a_offset,
+            two_spaces=2
         );
     }
 
