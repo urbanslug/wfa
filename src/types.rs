@@ -2,6 +2,8 @@
 Configs and related WFA types
  */
 
+use crate::utils;
+
 // ----------------------
 //         Config
 // ----------------------
@@ -58,7 +60,7 @@ pub struct WaveFront {
 
 impl WaveFront {
     pub fn new(hi: i32, lo: i32) -> Self {
-        let len = num::abs_sub(hi, lo) as usize + 1;
+        let len = utils::new_compute_wave_length(lo, hi);
 
         Self {
             hi,
@@ -69,26 +71,42 @@ impl WaveFront {
 
     pub fn len(&self) -> usize {
         // TODO merge with utils
-        let wave_length = num::abs_sub(self.hi, self.lo) as usize + 1;
-        let offset_len = self.offsets.len();
-        if wave_length != offset_len {
-            panic!("len error")
-        }
 
-        offset_len
+        let wave_len = utils::new_compute_wave_length(self.lo, self.hi);
+        // TODO: remove
+        assert_eq!(wave_len, self.offsets.len());
+
+        wave_len
     }
 
-    // takes the diagonal k (not k-index)
-    pub fn get_offset(&self, k: i32) -> Option<&i32> {
-        let wave_length = self.len();
+    pub fn k_index(&self, k: i32) -> usize {
+        utils::new_compute_k_index(k, self.lo, self.hi)
+    }
 
-        // TODO: merge with utils::compute_k_index
-        if (self.hi - k) < 0 || wave_length as i32 - (self.hi - k) < 1 {
+    pub fn in_bounds(&self, k: i32) -> bool {
+        utils::k_in_bounds(k, self.lo, self.hi)
+    }
+    /// return the offset at the k diagonal
+    /// Computes the k-index internally
+    /// takes the diagonal k (not k-index)
+    pub fn get_offset(&self, k: i32) -> Option<&i32> {
+        if !utils::k_in_bounds(k, self.lo, self.hi) {
+            // eprintln!("out of bounds");
             return None;
         }
 
-        let k_index: usize = wave_length - ((self.hi - k) as usize) - 1;
+        let k_index = utils::new_compute_k_index(k, self.lo, self.hi);
         self.offsets.get(k_index)
+    }
+
+    pub fn get_offset_mut(&mut self, k: i32) -> Option<&mut i32> {
+        if !utils::k_in_bounds(k, self.lo, self.hi) {
+            // eprintln!("out of bounds mut");
+            return None;
+        }
+
+        let k_index = utils::new_compute_k_index(k, self.lo, self.hi);
+        self.offsets.get_mut(k_index)
     }
 }
 
@@ -114,9 +132,9 @@ pub struct WaveFronts {
     /// WF_s is wavefront_set\[s\]
     pub wavefront_set: Vec<Option<WaveFrontSet>>,
 
-    pub min_k: i32,
-    pub max_k: i32,
-    pub a_k: usize,
+    pub min_k: isize, // -qlen
+    pub max_k: isize, // tlen
+    pub a_k: i32,
 }
 
 impl WaveFronts {

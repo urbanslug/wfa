@@ -21,6 +21,38 @@ pub fn compute_k_index(length: usize, k: i32, hi: i32) -> usize {
     length - ((hi - k) as usize) - 1
 }
 
+pub fn new_compute_k_index(k: i32, lo: i32, hi: i32) -> usize {
+    if lo > hi {
+        panic!("[utils::new_compute_k_index] lo > hi lo = {lo} hi = {hi}");
+    }
+
+    if k < lo {
+        panic!("[utils::new_compute_k_index] k < lo lo = {lo} hi = {hi} k = {k}");
+    }
+
+    if k > hi {
+        panic!("[utils::new_compute_k_index] k > hi lo = {lo} hi = {hi} k = {k}");
+    }
+
+    (k - lo) as usize
+}
+
+pub fn new_compute_wave_length(lo: i32, hi: i32) -> usize {
+    if lo > hi {
+        panic!("[utils::new_compute_wave_length] lo > hi lo = {lo} hi = {hi}")
+    }
+
+    (hi - lo) as usize + 1
+}
+
+pub fn k_in_bounds(k: i32, lo: i32, hi: i32) -> bool {
+    lo <= hi && k >= lo && k <= hi
+}
+
+pub fn k_out_of_bounds(k: i32, lo: i32, hi: i32) -> bool {
+    !k_in_bounds(k, lo, hi)
+}
+
 pub fn sub_else_zero(lhs: isize, rhs: isize) -> isize {
     let result: isize = lhs - rhs;
     if result < 0 {
@@ -43,16 +75,23 @@ pub fn compute_h(offset: i32, _: i32) -> i32 {
     offset
 }
 
-pub fn end_reached(m_wavefront: Option<&types::WaveFront>, a_k: usize, a_offset: u32) -> bool {
+pub fn end_reached(m_wavefront: Option<&types::WaveFront>, a_k: i32, a_offset: u32) -> bool {
+
     let m_wavefront = match m_wavefront {
         Some(wf) => wf,
         _ => return false,
     };
 
-    let k_index: usize = compute_k_index(m_wavefront.len(), a_k as i32, m_wavefront.hi);
-    let m_s_k = m_wavefront.offsets[k_index]; // m_offset
+    if k_out_of_bounds(a_k, m_wavefront.lo, m_wavefront.hi) {
+        return false
+    }
 
-    m_s_k > 0 && (m_s_k as u32) >= a_offset
+    *m_wavefront.get_offset(a_k).unwrap() as isize >= a_offset as isize
+
+    // let k_index: usize = compute_k_index(m_wavefront.len(), a_k as i32, m_wavefront.hi);
+    // let m_s_k = m_wavefront.offsets[k_index]; // m_offset
+
+    // m_s_k > 0 && (m_s_k as u32) >= a_offset
 }
 
 // TODO: make it a macro?

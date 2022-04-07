@@ -18,7 +18,7 @@ use ndarray_to_img;
 
 pub static TEST_CONFIG: crate::types::Config = crate::types::Config {
     adapt: false,
-    verbosity: 0,
+    verbosity: 1,
     penalties: crate::types::Penalties {
         mismatch: 4,
         matches: 0,

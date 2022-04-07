@@ -220,12 +220,12 @@ fn wf_extend(
     m_wavefront: &mut types::WaveFront,
     config: &types::Config,
     match_positions: &mut Vec<(i32, i32, usize)>,
-    score: usize,
+    _score: usize,
     text: &[u8],
     query: &[u8],
 ) {
     if config.verbosity > 1 {
-        eprintln!("\t[wflambda::wf_extend]");
+        eprintln!("\t[wfa::wf_extend]");
     }
 
     let tlen = text.len();
@@ -236,24 +236,28 @@ fn wf_extend(
    //  eprintln!("\t\tscore {}", score);
 
     for k in m_wavefront.lo..=m_wavefront.hi {
-        let k_index: usize = utils::compute_k_index(m_wavefront.len(), k, m_wavefront.hi);
+
+        let m_s_k: i32 = *m_wavefront.get_offset(k).expect("[wfa::wf_extend] fail unwrap k={k}");
+        // let k_index: usize = utils::new_compute_k_index(k, m_wavefront.lo, m_wavefront.hi);
 
         // assuming tlen > qlen
-        let m_s_k: i32 = m_wavefront.offsets[k_index];
+        // let m_s_k: i32 = m_wavefront.offsets[k_index];
 
         let mut v = utils::compute_v(m_s_k, k);
         let mut h = utils::compute_h(m_s_k, k);
 
-        // eprintln!("\t\t\tk {}\toffset {}\t({}, {})", k, m_s_k, v, h);
+        eprintln!("\t\t\tk {}\toffset {}\t({}, {})", k, m_s_k, v, h);
         // vt[v][h] = m_wavefront.vals[k_index] as i32;
 
         let is_match = |v: i32, h: i32| -> bool {
-            if v < 0 || h < 0 {
+            if v < 0 || h < 0 || h  as usize >= tlen || v as usize >= qlen {
                 return false;
             }
             let v = v as usize;
             let h = h as usize;
-            h < tlen && v < qlen && text[h] == query[v]
+
+            eprintln!("\t\t\t {} {}", text[h] as char, query[v] as char);
+            text[h] == query[v]
         };
 
         while is_match(v, h) {
@@ -265,12 +269,19 @@ fn wf_extend(
                 );
             }
             // increment our offset on the m_wavefront
-            m_wavefront.offsets[k_index] += 1;
+            *m_wavefront.get_offset_mut(k).unwrap() += 1;
+            // m_wavefront.offsets[k_index] += 1;
 
-            let offset = m_wavefront.offsets[k_index];
-            match_positions.push((v, h, offset as usize));
+            // Debug stuff
+            {
+                let offset = *m_wavefront
+                    .get_offset(k)
+                    .expect("DEBUG [wfa::wf_extend] fail unwrap k={k}");
+                match_positions.push((v, h, offset as usize));
 
-            // eprintln!("\t\tk {}\toffset {}", k, offset);
+                eprintln!("\t\tk {}\toffset {}", k, offset);
+            }
+
             v += 1;
             h += 1;
         }
@@ -283,23 +294,23 @@ pub fn wf_align(
     config: &types::Config,
 ) -> (usize, String) {
     if config.verbosity > 1 {
-        eprintln!("[wflambda::wf_align]");
+        eprintln!("[wfa::wf_align]");
     }
 
     let tlen = text.len() as u32;
     let qlen = query.len() as u32;
 
     // compute the central diagonal, a_k.
-    let a_k: usize = num::abs_sub(tlen as isize, qlen as isize) as usize;
+    let a_k: i32 = (tlen as isize - qlen as isize) as i32;
 
     // the furthest offset we expect the central diagonal to reach
     // subtract 1 because of the zero index
-    let a_offset: u32 = cmp::max(tlen, qlen);
+    let a_offset: u32 = tlen;
 
-    // eprintln!("\t a_k {} a_offset {}", a_k, a_offset);
+    let hi: i32 = 0;
+    let lo: i32 = 0;
 
-    let hi: i32 = a_k as i32;
-    let lo: i32 = a_k as i32;
+    eprintln!("\t a_k {a_k} a_offset {a_offset} hi {hi} lo {lo}");
 
     // Initial conditions
     let wf_set = types::WaveFrontSet {
@@ -310,8 +321,8 @@ pub fn wf_align(
 
     let mut all_wavefronts = types::WaveFronts {
         wavefront_set: vec![Some(wf_set)],
-        min_k: -(cmp::min(tlen, qlen) as i32),
-        max_k: cmp::max(tlen, qlen) as i32,
+        min_k: -(qlen as isize),
+        max_k: tlen as isize,
         a_k,
     };
 
@@ -322,15 +333,15 @@ pub fn wf_align(
     // unnecessary
     // score ... diagonal
     // all_wavefronts.wavefront_set[0].m.vals[0] = 0;
-    assert_eq!(
-        all_wavefronts
-            .get_m_wavefront(score as i32)
-            .unwrap()
-            .get_offset(a_k as i32)
-            .cloned()
-            .unwrap(),
-        0
-    );
+    // Make sure start score is 0
+    if *all_wavefronts
+        .get_m_wavefront(score as i32)
+        .expect(&format!("[wfa::wf_align] no m-wavefront at score {}", score))
+        .get_offset(0 as i32)
+        .expect(&format!("[wfa::wf_align] no offset on a_k = {a_k} m-wavefront at score {score}")) != 0
+    {
+            panic!("[wfa::wf_align] start score should be zero");
+    }
 
     let mut match_posititons: Vec<(i32, i32, usize)> = Vec::new();
 
@@ -440,8 +451,12 @@ mod tests {
         #[test]
         fn test_longest() {
             // different sequences
-            let text  = "TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGT";
-            let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGT";
+            let text  = "TCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGCGTTTGGAGAA\
+                         ATAAAATAGTTCTATACTGCGCGTTTGGAGAAATAAAATAGTTCTATACTGCGC\
+                         GTTTGGAGAAATAAAATAGT";
+            let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCGCGTTGGAGAA\
+                         ATACAATAGTTCTTTACTCGCGCGTTGGAGAAATACAATAGTTCTTTACTCGCG\
+                         CGTTGGAGAAATACAATAGT";
 
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
@@ -458,59 +473,78 @@ mod tests {
         #[test]
         fn test_short_shorter_text() {
             // different sequences
-            let text =  "ACACA";
-            let query = "GACACA";
+            let text  =  "TCTGA";
+            let query = "ATCTGA";
+
+            // let text  =  "ACACA";
+            // let query = "GACACA";
 
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
+
+            self::assert_eq!(cigar, "DMMMMM");
             crate::utils::print_aln(cigar.as_bytes(), t, q);
-            assert!(false);
         }
 
         #[test]
         fn test_short_shorter_query() {
             // different sequences
-            let text = "GAGATA";
-            let query = "GACAC";
+            let text  = "ATCTGA";
+            let query =  "TCTGA";
 
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
             dbg!(score, &cigar);
+
+            self::assert_eq!(cigar, "IMMMMM");
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
+
+            // different sequences
+            let text  = "ATCTGA";
+            let query = "ATCGA";
+
+            let t: &[u8] = text.as_bytes();
+            let q: &[u8] = query.as_bytes();
+
+            let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
+            dbg!(score, &cigar);
+
+            self::assert_eq!(cigar, "MMMIMM");
             crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
-        #[ignore]
+
         #[test]
         fn test_long_shorter_text() {
             // different sequences
             let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGT";
-            let text = "TCTATACTGCGCGTTTGGAGAAATAAAATAGT";
+            let text =  "TCTATACTGCGCGTTGAGAAATAAAAAG";
 
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
-            dbg!(score, &cigar);
+
+            self::assert_eq!(score, 40);
             crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
 
-        #[ignore]
         #[test]
         fn test_long_shorter_query() {
             // different sequences
-            let query = "TCTTTACTCGCGCGTTGGAGAAATACAATAGT";
-            let text = "TCTATACTGCGCGTTTGGAGAAATAAAATAGT";
+            let query = "TCTTTATCGCGGTTGGAGAAAACAAAGT";
+            let text  = "TCTATACTGCGCGTTTGGAGAAATAAAATAGT";
 
             let t: &[u8] = text.as_bytes();
             let q: &[u8] = query.as_bytes();
 
             let (score, cigar) = wfa_align(t, q, &TEST_CONFIG);
-            dbg!(score, &cigar);
+            self::assert_eq!(score, 40);
             crate::utils::print_aln(cigar.as_bytes(), t, q);
         }
     }
