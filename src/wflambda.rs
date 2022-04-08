@@ -245,10 +245,12 @@ fn wf_extend<F>(
         // assuming tlen > qlen
         // let m_s_k: i32 = m_wavefront.offsets[k_index];
 
-        let m_s_k: i32 = *m_wavefront.get_offset(k).expect("[wfa::wf_extend] fail unwrap k={k}");
+        let m_s_k: i32 = *m_wavefront.get_offset(k).expect("[wflambda::wf_extend] fail unwrap k={k}");
 
         let mut v = utils::compute_v(m_s_k, k);
         let mut h = utils::compute_h(m_s_k, k);
+
+        eprintln!("\t\t\tk {}\toffset {}\t({}, {})", k, m_s_k, v, h);
 
         // eprintln!("\t\t\tk {}\toffset {}\t({}, {})", k, m_s_k, v, h);
         // vt[v][h] = m_wavefront.vals[k_index] as i32;
@@ -652,6 +654,66 @@ mod tests {
     mod different_sequence_different_len {
         use crate::tests_prelude::*;
 
+        #[test]
+        fn foo() {
+            let text  = "ATCTAA";
+            let query = "ATCAA";
+
+            let tlen = text.len();
+            let qlen = query.len();
+
+            let t: &[u8] = text.as_bytes();
+            let q: &[u8] = query.as_bytes();
+
+            let mut match_lambda = |v: &mut i32,  h: &mut i32, offset: &mut i32| {
+                if *v < 0 || *h < 0 {
+                    return false;
+                }
+
+                let v_idx = *v as usize;
+                let h_idx = *h as usize;
+
+                let res = h_idx < tlen && v_idx < qlen && t[h_idx] == q[v_idx];
+
+                if res {
+                    *v += 1;
+                    *h += 1;
+                    *offset += 1;
+                }
+
+                res
+            };
+
+            let mut traceback_lambda =
+                |(q_start, q_stop): (i32, i32), (t_start, t_stop): (i32, i32)| -> bool {
+
+                    if q_start < 0
+                        || q_stop as usize > qlen
+                        || t_start < 0
+                        || t_stop as usize > tlen {
+                        return false;
+                    }
+
+                    let q_start = q_start as usize;
+                    let q_stop = q_stop as usize;
+                    let t_start = t_start as usize;
+                    let t_stop = t_stop as usize;
+
+                    q[q_start..q_stop] == t[t_start..t_stop]
+                };
+
+            let (score, cigar) = wflambda_align(
+                tlen as u32,
+                qlen as u32,
+                &TEST_CONFIG,
+                &mut match_lambda,
+                &mut traceback_lambda
+            ).unwrap();
+
+            // self::assert_eq!(score, 8);
+            // self::assert_eq!(cigar, "IMMMMM");
+            crate::utils::print_aln(cigar.as_bytes(), t, q);
+        }
         #[test]
         fn test_short_shorter_query() {
 
